@@ -5,12 +5,16 @@ library(shinycssloaders)
 library(dplyr)
 library(cummeRbund)
 library(gridExtra)
+library(plotly)
+library(DESeq2)
+#library(TxDb.Hsapiens.UCSC.hg38.knownGene)
 
 ui<- dashboardPage(
       dashboardHeader(title = 'NGS data analysis'),
       dashboardSidebar(
         sidebarMenu(
-          menuItem('CummeRbund',tabName = 'CummeRbund', icon = icon('chart-line'))
+          menuItem('CummeRbund',tabName = 'CummeRbund', icon = icon('chart-line')),
+          menuItem('DESeq2',tabName = 'DESeq2', icon = icon('chart-line'))
         )
       ),
       dashboardBody(
@@ -19,11 +23,10 @@ ui<- dashboardPage(
                   navbarPage(title = 'Analyze data with CummeRbund',
                              tabPanel('Groups Summary', icon = icon('calendar-plus'),
                                       textInput('directory',label = 'Please copy and paste the directory:',value = getwd()),
-                                      uiOutput('groups_choices'),
                                       actionButton('get_summary',label = 'Summarize'),
                                       shiny::tags$hr(),
                                       shiny::tags$p('Info summary'),
-                                      plotOutput('summary') %>% withSpinner(color="#0dc5c1"),
+                                      tableOutput('summary') %>% withSpinner(color="#0dc5c1"),
                                       shiny::tags$hr(),
                                       shiny::tags$p('Dispersion plot'),
                                       plotOutput('dispersion') %>% withSpinner(color="#0dc5c1"),
@@ -56,7 +59,7 @@ ui<- dashboardPage(
                                       tableOutput('groups_genes_rpkm'),
                                       tableOutput('groups_isoforms_rpkm')
                              ),
-                             tabPanel('2Group Summary', icon = icon('calendar-plus'),
+                             tabPanel('Pairwise Summary', icon = icon('calendar-plus'),
                                       uiOutput('group1'),
                                       uiOutput('group2'),
                                       actionButton('get_plots',label = 'Get Plots'),
@@ -70,114 +73,124 @@ ui<- dashboardPage(
                                       shiny::tags$p('csVolcano plot'),
                                       plotOutput('csVolcano') %>% withSpinner(color="#0dc5c1")
                              ),
-                             tabPanel('2Group Expression', icon = icon('calendar-plus'),
+                             tabPanel('Pairwise Expression', icon = icon('calendar-plus'),
                                       textInput('2group_gene_name', label = 'Please enter a gene', value = 'example:GAPDH'),
                                       actionButton('get_2group_gene',label = 'Analyze'),
                                       shiny::tags$hr(),
-                                      plotOutput('2group_gene_plot'),
+                                      plotOutput('2group_gene_plot') %>% withSpinner(color="#0dc5c1"),
                                       shiny::tags$hr(),
-                                      tableOutput('2group_gene_rpkm'),
-                                      uiOutput('2group_isoforms_rpkm')
+                                      tableOutput('2group_gene_rpkm') %>% withSpinner(color="#0dc5c1"),
+                                      shiny::tags$hr(),
+                                      uiOutput('2group_isoforms_plot') %>% withSpinner(color="#0dc5c1"),
+                                      shiny::tags$hr(),
+                                      uiOutput('2group_isoforms_rpkm') %>% withSpinner(color="#0dc5c1")
                              )
-                            )
-                  
                   )
-        )
-      )
-)
+          ),
+          tabItem(tabName = 'DESeq2',
+                  navbarPage(title = 'Analyze data with DESeq2',
+                             tabPanel(title = 'Raw data',icon = icon('calendar-plus'),
+                             textInput('directory_DESeq2',label = 'Please copy and paste the directory:',value = getwd()),
+                             textOutput('fileslist')
+                             )
+                  ) #navbarPage: DESeq2
+          ) # tabItem:DESeq2
+        ) # tabItems
+      ) # dashboardBody
+) #dashboardPage
 
 server <- function(input, output, session){
 source('global.R', local = TRUE)
-  
+#   
 # variables
 cuff<-eventReactive(input$get_summary,{
-  readCufflinks(input$directory)
+  cummeRbund::readCufflinks(input$directory)
 })
 mygene<-eventReactive(input$get_gene,{
-  getGene(cuff(),input$gene_name)
+  cummeRbund::getGene(cuff(),input$gene_name)
 })
 
-groups<-eventReactive(input$get_summary,{
-  Info<-replicates(cuff())
+groups<-reactive({
+  if (is.null(cuff())){
+    return(NULL)
+  } else
+  Info<-cummeRbund::replicates(cuff())
   return(levels(factor(Info$sample_name)))
 })
 
-output$groups_choices<- renderUI({
-  checkboxGroupInput(inputId = "groups_name", label = "Please select groups you want to compare with:", choices = groups(), selected = groups())
-})
-
-output$summary<-renderPlot({
+output$summary<-renderTable({
   cuff()
-  Info<-replicates(cuff())
-  grid.table(Info, theme=ttheme_minimal(base_size = 16))
+  Info<-cummeRbund::replicates(cuff())
+  return(Info)
+  #grid.table(Info, theme=ttheme_minimal(base_size = 16))
 })
 output$dispersion<-renderPlot({
   if (is.null(cuff())){
     return(NULL)
   } else 
-      dispersionPlot(genes(cuff()))
+    cummeRbund::dispersionPlot(genes(cuff()))
 })
 output$csScatterMatrix<-renderPlot({
   if (is.null(cuff())){
     return(NULL)
   } else 
-    csScatterMatrix(genes(cuff()))
+    cummeRbund::csScatterMatrix(genes(cuff()))
 })
 output$csVolcanoMatrix<-renderPlot({
   if (is.null(cuff())){
     return(NULL)
   } else 
-    csVolcanoMatrix(genes(cuff()))
+    cummeRbund::csVolcanoMatrix(genes(cuff()))
 })
 output$csDensity<-renderPlot({
   if (is.null(cuff())){
     return(NULL)
   } else if (input$select_csDensity=='Group'){
-    csDensity(genes(cuff()))
+    cummeRbund::csDensity(genes(cuff()))
   } else if (input$select_csDensity=='Individual'){
-    csDensity(genes(cuff()),replicates=T)
+    cummeRbund::csDensity(genes(cuff()),replicates=T)
   }
 })
 output$csBoxplot<-renderPlot({
   if (is.null(cuff())){
     return(NULL)
   } else if (input$select_csBoxplot=='Group'){
-    csBoxplot(genes(cuff()))
+    cummeRbund::csBoxplot(genes(cuff()))
   } else if (input$select_csBoxplot=='Individual'){
-    csBoxplot(genes(cuff()),replicates=T)
+    cummeRbund::csBoxplot(genes(cuff()),replicates=T)
   }
 })
 output$csDendro<-renderPlot({
   if (is.null(cuff())){
     return(NULL)
   } else if (input$select_csDendro=='Group'){
-    csDendro(genes(cuff()))
+    cummeRbund::csDendro(genes(cuff()))
   } else if (input$select_csDendro=='Individual'){
-    csDendro(genes(cuff()),replicates=T)
+    cummeRbund::csDendro(genes(cuff()),replicates=T)
   }
 })
-
+# tabPanel groups gene and isoforms analysis
 output$groups_genes_rpkm<-renderTable({
   if (is.null(mygene())){
     return(NULL)
   } else
-  fpkm(mygene())
+    cummeRbund::fpkm(mygene())
 })
 output$groups_isoforms_rpkm<-renderTable({
   if (is.null(mygene())){
     return(NULL)
   } else
-  fpkm(isoforms(mygene()))
+    cummeRbund::fpkm(isoforms(mygene()))
 })
 output$genePlots<-renderPlot({
   if (is.null(mygene())){
     return(NULL)
   } else
   g1 <- expressionBarplot(mygene())
-  g2 <- expressionBarplot(isoforms(mygene()))
+  g2 <- expressionBarplot(cummeRbund::isoforms(mygene()))
   grid.arrange(g1, g2, nrow=1)
 })
-# tabPanel 2Group summary
+# tabPanel Pairwise summary
 output$group1<-renderUI({
   group_name_list<-groups()
   selectInput(inputId = 'group1', label = 'Please select first group:', choices = group_name_list ,selected = group_name_list[1])
@@ -188,13 +201,13 @@ output$group2<-renderUI({
 })
 
 MA_plot<-eventReactive(input$get_plots,{
-  MAplot(genes(cuff()), input$group1, input$group2)
+  cummeRbund::MAplot(cummeRbund::genes(cuff()), input$group1, input$group2)
 })
 csScatter_plot<-eventReactive(input$get_plots,{
-  csScatter(genes(cuff()), input$group1, input$group2)
+  cummeRbund::csScatter(cummeRbund::genes(cuff()), input$group1, input$group2)
 })
 csVolcano_plot<-eventReactive(input$get_plots,{
-  csVolcano(genes(cuff()), input$group1, input$group2)
+  cummeRbund::csVolcano(cummeRbund::genes(cuff()), input$group1, input$group2)
 })
 output$MA_plot<-renderPlot({
   if (is.null(MA_plot())){
@@ -214,25 +227,26 @@ output$csVolcano<-renderPlot({
   } else
     csVolcano_plot()
 })
-# tabPanel 2Group gene and isoforms analysis
+# tabPanel Pairwise gene and isoforms analysis
 mygene_2group<-eventReactive(input$get_2group_gene,{
-  getGene(cuff(),input$`2group_gene_name`)
+  cummeRbund::getGene(cuff(),input$`2group_gene_name`)
 })
 df.tar_gene<-eventReactive(input$get_2group_gene,{
   gene_data(mygene_2group(), input$`2group_gene_name`,input$group1, input$group2)
 })
-
-
+df.tar_gene.isoform<-eventReactive(input$get_2group_gene,{
+  isoform_data(mygene_2group(),input$group1, input$group2)
+})
 output$`2group_gene_plot`<-renderPlot({
   if (is.null(mygene_2group())){
     return(NULL)
   } else
-  g1 <- tableGrob(df.tar_gene(),theme=ttheme_minimal(base_size = 5))
-  g2 <- ggplot(df.tar_gene(), aes(x=sample_name,y=fpkm))+
+  g <- ggplot(df.tar_gene(), aes(x=sample_name,y=fpkm))+
     geom_bar(stat = "identity", color="black", width=0.5, position=position_dodge())+
     geom_errorbar(aes(ymin=conf_lo, ymax=conf_hi), width=.2,position=position_dodge(0.5))+
     labs(title=paste(input$`2group_gene_name`, "differetial expression"), x="Group name", y = "FPKM")+theme_classic() + 
     scale_fill_manual(values=c('#123456','#345678'))
+  return(g)
 })
 output$`2group_gene_rpkm`<-renderTable({
   if (is.null(mygene_2group())){
@@ -240,20 +254,43 @@ output$`2group_gene_rpkm`<-renderTable({
   } else
   df.tar_gene()
 })
+output$`2group_isoforms_plot`<-renderUI({
+  if (is.null(df.tar_gene.isoform())){
+    return(NULL)
+  } else
+    plot_output_list <- lapply(1:length(df.tar_gene.isoform()), function(i) {
+      plotname <- paste0("plot", i)
+      plot_output_object <- plotlyOutput(plotname)
+      plot_output_object <- renderPlotly({
+        isoform.table.column.name<-c("isoform_id","sample_name","fpkm","conf_hi","conf_lo","quant_status")
+        isoform.data<-data.frame(df.tar_gene.isoform()[i])
+        colnames(isoform.data)<-isoform.table.column.name
+        draw_isoform_plot(isoform.data)
+      })
+    })
+  return(plot_output_list)
+})
 output$`2group_isoforms_rpkm`<-renderUI({
-  table_output_list <- lapply(1:length(input$show_results), function(i) {
+  if (is.null(df.tar_gene.isoform())){
+    return(NULL)
+  } else
+  table_output_list <- lapply(1:length(df.tar_gene.isoform()), function(i) {
     tablename <- paste0("table", i)
     table_output_object <- plotlyOutput(tablename)
     table_output_object <- renderTable({
-      source('global.R', local = TRUE)
-      gene_expression_table(input$show_results[i]) 
+      isoform.table.column.name<-c("isoform_id","sample_name","fpkm","conf_hi","conf_lo","quant_status")
+      isoform.data<-data.frame(df.tar_gene.isoform()[i])
+      colnames(isoform.data)<-isoform.table.column.name
+      isoform.data
     })
   })
   return(table_output_list)
 })
-
+# DESeq2
+output$fileslist<-renderPrint({
+  bamfiles<-list.files(input$directory_DESeq2, pattern = ".bam")
+  return(bamfiles)
+})
 }
 
-
 shinyApp(ui, server)
-

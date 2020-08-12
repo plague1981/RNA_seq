@@ -1,0 +1,2 @@
+A1.S1.gz.subread.BAM	A2.S2.gz.subread.BAM	A3.S3.gz.subread.BAM	B1.S4.gz.subread.BAM	B2.S5.gz.subread.BAM	B3.S6.gz.subread.BAM	C1.S7.gz.subread.BAM	C2.S8.gz.subread.BAM	C3.S9.gz.subread.BAM	D1.S10.gz.subread.BAM	D2.S11.gz.subread.BAM	D3.S12.gz.subread.BAM
+A	A	A	B	B	B	C	C	C	D	D	D

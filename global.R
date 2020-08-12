@@ -97,6 +97,7 @@ volcano_plot<-function(res_cases){
 counts_dotplot<-function(df){
   df$condition..<-as.factor(df$condition..)
   p<-ggplot(df, aes(x=condition.., y=count)) + 
-    geom_dotplot(binaxis='y', stackdir='center')
+    geom_dotplot(binaxis='y', stackdir='center') +
+    labs(title=input$gene,x="Group", y = "Counts")
   return(p)
 }

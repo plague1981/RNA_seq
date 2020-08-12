@@ -7,14 +7,17 @@ library(cummeRbund)
 library(gridExtra)
 library(plotly)
 library(DESeq2)
-#library(TxDb.Hsapiens.UCSC.hg38.knownGene)
+library(rapportools)
 
+memory.limit(1610241024*1024)
+gc()
 ui<- dashboardPage(
       dashboardHeader(title = 'NGS data analysis'),
       dashboardSidebar(
         sidebarMenu(
           menuItem('CummeRbund',tabName = 'CummeRbund', icon = icon('chart-line')),
-          menuItem('DESeq2',tabName = 'DESeq2', icon = icon('chart-line'))
+          menuItem('DESeq2',tabName = 'DESeq2', icon = icon('chart-line')),
+          menuItem('Subread',tabName = 'Subread', icon = icon('chart-line'))
         )
       ),
       dashboardBody(
@@ -88,13 +91,50 @@ ui<- dashboardPage(
                   )
           ),
           tabItem(tabName = 'DESeq2',
-                  navbarPage(title = 'Analyze data with DESeq2',
-                             tabPanel(title = 'Raw data',icon = icon('calendar-plus'),
-                             textInput('directory_DESeq2',label = 'Please copy and paste the directory:',value = getwd()),
-                             textOutput('fileslist')
+                  navbarPage('Analyze data with DESeq2',
+                             tabPanel('Count Table',icon = icon('calendar-plus'),
+                                      fileInput(inputId = 'file',label = 'Select raw data file:',multiple = FALSE),
+                                      fileInput(inputId = 'condition',label = 'Select condition file:',multiple = FALSE),
+                                      textInput('directory_DESeq2',label = 'Please copy and paste the directory of *.bam files:',value = getwd()),
+                                      tableOutput('fileslist'),
+                                      actionButton(inputId = 'get_counttable',label = 'Analyze'),
+                                      tableOutput('counttable') %>% withSpinner(color="#0dc5c1")
+                             ),
+                             tabPanel('Sum-Plots', icon = icon('map'),
+                                      shiny::tags$p('DispEsts'),
+                                      plotOutput('plot_DispEsts') %>% withSpinner(color="#0dc5c1"),
+                                      shiny::tags$p('MA'),
+                                      plotOutput('plot_MA') %>% withSpinner(color="#0dc5c1"),
+                                      shiny::tags$p('Sparsity'),
+                                      plotOutput('plot_Sparsity') %>% withSpinner(color="#0dc5c1"),
+                                      shiny::tags$p('Heat map'),
+                                      sliderInput(inputId = 'n_heatmap',label = 'How many genes in the heat map?',min = 2,max = 100,value = 10),
+                                      plotOutput('heatmap') %>% withSpinner(color="#0dc5c1")
+
+                             ),
+                             tabPanel('Differetial expression', icon = icon('calendar-plus'),
+                                      textInput(inputId = 'gene',label = 'Please enter a gene:',value = 'GAPDH'),
+                                      actionButton(inputId = 'gene_analyze',label = 'Get data'),
+                                      tableOutput('DE_table') %>% withSpinner(color="#0dc5c1"),
+                                      plotOutput('DE_plot') %>% withSpinner(color="#0dc5c1")
+                               
+                             ),
+                             tabPanel('Pairwise',icon = icon('calendar-plus'),
+                                      uiOutput('group1_contrast'),
+                                      uiOutput('group2_contrast')
                              )
                   ) #navbarPage: DESeq2
-          ) # tabItem:DESeq2
+          ), # tabItem:DESeq2
+          tabItem(tabName = 'Subread',
+                  navbarPage(title = 'Analyze data with Rubread',
+                             tabPanel('Build index',icon = icon('calendar-plus')
+                             
+                             ),
+                             tabPanel('Count Table', icon = icon('calendar-plus')
+                                      
+                             )
+                  ) #navbarPage: Subread
+          ) # tabItem:Subread
         ) # tabItems
       ) # dashboardBody
 ) #dashboardPage
@@ -287,9 +327,128 @@ output$`2group_isoforms_rpkm`<-renderUI({
   return(table_output_list)
 })
 # DESeq2
-output$fileslist<-renderPrint({
-  bamfiles<-list.files(input$directory_DESeq2, pattern = ".bam")
-  return(bamfiles)
+bamfiles<-reactive({
+  bamfiles<-list.files(input$directory_DESeq2, pattern = ".bam$")
+  bamfiles<-file.path(input$directory_DESeq2, bamfiles )
+})
+
+condition<-reactive({
+  if (is.null(input$file)){
+    return(NULL)
+  } else
+    grouptable<-read.csv(file = input$condition$datapath ,sep = '\t')
+    return(unlist(matrix(grouptable[1,])))
+})
+
+counttable<-eventReactive(input$get_counttable,{
+  if (is.null(bamfiles()) & is.null(input$file)){
+    return(NULL)
+  } else if (!is.empty(bamfiles())){
+    return(generateCountTable(bamfiles()))
+  } else if (!is.null(input$file)){
+    counttable<-read.csv(file = input$file$datapath ,sep = '\t')
+    return(counttable)
+  }
+})
+des<-reactive({
+  if (is.null(counttable())){
+    return(NULL)
+  } else
+  des<-DESeqDataSetFromMatrix(counttable(), DataFrame(condition()), ~ condition())
+  des<-estimateSizeFactors(des)
+  return(des)
+})
+M1symb<-reactive({
+  if (is.null(des())){
+    return(NULL)
+  } else
+  return(getMatrixWithSymbols(des()))
+})
+# DESeqResults extration
+dds<-reactive({
+  if (is.null(M1symb())){
+    return(NULL)
+  } else
+  dds<-DESeq(M1symb()) # Convert to DESeqDataSet format 
+  dds<-nbinomWaldTest(dds) # test for significance of change in deviance. c(nbinomLRT(),nbinomWaldTest())
+  return(dds)
+})
+output$group1_contrast<-renderUI({
+  selectInput(inputId = 'group1', label = 'Please select the first group:', choices = levels(factor(condition())),selected = levels(factor(condition()))[1])
+})
+output$group2_contrast<-renderUI({
+  selectInput(inputId = 'group2', label = 'Please select the second group:', choices = levels(factor(condition())),selected = levels(factor(condition()))[2])
+})
+
+# Remove NA containing rows
+res_cases<-reactive({
+  if (is.null(dds())){
+    return(NULL)
+  } else
+  res<-results(dds(),contrast = c('condition', input$group1, input$group2))
+  return(res[complete.cases(res),])
+})
+# Getting Significant data (padj<0.1)
+resSig<-reactive({
+  if (is.null(res_cases())){
+    return(NULL)
+  } else
+  return(res_cases[res_cases$padj<0.1,])
+})
+
+output$fileslist<-renderTable({
+  if (is.null(bamfiles())){
+    return(NULL)
+  } else
+  return(row.names(table(bamfiles())))
+})
+output$counttable<-renderTable(rownames = TRUE,spacing = 'xs',{
+  if (is.null(counttable())){
+    return(NULL)
+  } else
+  return(head(counts(M1symb(), normalized = TRUE)))
+})
+
+output$plot_DispEsts<-renderPlot({
+  if (is.null(dds())){
+    return(NULL)
+  } else
+  return(plotDispEsts(dds(), genecol="black", fitcol="red",finalcol="dodgerblue",cex=.2))
+})
+
+output$plot_MA<-renderPlot({
+  if (is.null(dds())){
+    return(NULL)
+  } else
+    return(plotMA(dds(),alpha=0.05, xlab="mean of normalized count"))
+})
+
+output$plot_Sparsity<-renderPlot({
+  if (is.null(dds())){
+    return(NULL)
+  } else
+    return(plotSparsity(dds(),normalized = TRUE))
+})
+output$heatmap<-renderPlot({
+  if (is.null(dds())){
+    return(NULL)
+  } else
+    return(drawheatmap(dds()))
+})
+DE_data<-eventReactive(input$gene_analyze,{
+  return(plotCounts(dds(), gene = input$gene, intgroup = 'condition..',returnData = TRUE,normalized = TRUE))
+})
+output$DE_plot<-renderPlot({
+  if (is.null(DE_data())){
+    return(NULL)
+  } else
+    counts_dotplot(DE_data())
+})
+output$DE_table<-renderTable(colnames = TRUE,rownames = TRUE, {
+  if (is.null(DE_data())){
+    return(NULL)
+  } else
+    DE_data()
 })
 }
 

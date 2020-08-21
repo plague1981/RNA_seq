@@ -2,6 +2,7 @@ library(shiny)
 library(shinythemes)
 library(shinydashboard)
 library(shinycssloaders)
+library(plyr)
 library(dplyr)
 library(cummeRbund)
 library(gridExtra)
@@ -92,15 +93,22 @@ ui<- dashboardPage(
           ),
           tabItem(tabName = 'DESeq2',
                   navbarPage('Analyze data with DESeq2',
+                             tabPanel('bamfiles', icon = icon('calendar-plus'), 
+                                      textInput('directory_DESeq2',label = 'Please copy and paste the directory of *.bam files:',value = getwd()),
+                                      tableOutput('fileslist')
+                             ),
                              tabPanel('Count Table',icon = icon('calendar-plus'),
                                       fileInput(inputId = 'file',label = 'Select raw data file:',multiple = FALSE),
                                       fileInput(inputId = 'condition',label = 'Select condition file:',multiple = FALSE),
-                                      textInput('directory_DESeq2',label = 'Please copy and paste the directory of *.bam files:',value = getwd()),
-                                      tableOutput('fileslist'),
                                       actionButton(inputId = 'get_counttable',label = 'Analyze'),
-                                      tableOutput('counttable') %>% withSpinner(color="#0dc5c1")
+                                      tableOutput('counttable') %>% withSpinner(color="#0dc5c1"),
+                                      
+                                      actionButton(inputId = 'get_dds',label = 'DESeqDataSet'),
+                                      tableOutput('dds') %>% withSpinner(color="#0dc5c1")
                              ),
                              tabPanel('Sum-Plots', icon = icon('map'),
+                                      shiny::tags$p('PCA'),
+                                      plotlyOutput('plot_PCA') %>% withSpinner(color="#0dc5c1"),
                                       shiny::tags$p('DispEsts'),
                                       plotOutput('plot_DispEsts') %>% withSpinner(color="#0dc5c1"),
                                       shiny::tags$p('MA'),
@@ -115,13 +123,15 @@ ui<- dashboardPage(
                              tabPanel('Differetial expression', icon = icon('calendar-plus'),
                                       textInput(inputId = 'gene',label = 'Please enter a gene:',value = 'GAPDH'),
                                       actionButton(inputId = 'gene_analyze',label = 'Get data'),
+                                      plotlyOutput('DE_plot') %>% withSpinner(color="#0dc5c1"),
                                       tableOutput('DE_table') %>% withSpinner(color="#0dc5c1"),
-                                      plotOutput('DE_plot') %>% withSpinner(color="#0dc5c1")
-                               
+                                      tableOutput('DE_sum_table') %>% withSpinner(color="#0dc5c1")
                              ),
                              tabPanel('Pairwise',icon = icon('calendar-plus'),
-                                      uiOutput('group1_contrast'),
-                                      uiOutput('group2_contrast')
+                                      uiOutput('ref_group'),
+                                      uiOutput('contrast_groups'),
+                                      actionButton(inputId = 'pairwise',label = 'Get data'),
+                                      tableOutput('pw_table') %>% withSpinner(color="#0dc5c1")
                              )
                   ) #navbarPage: DESeq2
           ), # tabItem:DESeq2
@@ -332,14 +342,6 @@ bamfiles<-reactive({
   bamfiles<-file.path(input$directory_DESeq2, bamfiles )
 })
 
-condition<-reactive({
-  if (is.null(input$file)){
-    return(NULL)
-  } else
-    grouptable<-read.csv(file = input$condition$datapath ,sep = '\t')
-    return(unlist(matrix(grouptable[1,])))
-})
-
 counttable<-eventReactive(input$get_counttable,{
   if (is.null(bamfiles()) & is.null(input$file)){
     return(NULL)
@@ -350,8 +352,16 @@ counttable<-eventReactive(input$get_counttable,{
     return(counttable)
   }
 })
+condition<-reactive({
+  if (is.null(input$condition)){
+    return(NULL)
+  } else
+    grouptable<-read.csv(file = input$condition$datapath ,sep = '\t')
+    return(unlist(matrix(grouptable[1,])))
+})
+
 des<-reactive({
-  if (is.null(counttable())){
+  if (is.null(counttable())|is.null(condition())){
     return(NULL)
   } else
   des<-DESeqDataSetFromMatrix(counttable(), DataFrame(condition()), ~ condition())
@@ -365,29 +375,42 @@ M1symb<-reactive({
   return(getMatrixWithSymbols(des()))
 })
 # DESeqResults extration
-dds<-reactive({
+output$ref_group<-renderUI({
+  if (is.null(condition())){
+    return(NULL) 
+  } else
+    group_choices<-row.names(table(condition()))
+    #group_choices<-row.names(table(M1symb()$groups))
+    selectInput(inputId = 'ref_DESeq2', label = 'Please select the reference group:', choices = group_choices,selected = group_choices[1])
+})
+output$contrast_groups<-renderUI({
+  if (is.null(condition())){
+    return(NULL) 
+  } else
+  group_choices<-row.names(table(condition()))
+  selectInput(inputId = 'contrast_DESeq2', label = 'Please select the contrast group:',choices = group_choices,selected = group_choices[2])
+})
+dds<-eventReactive(input$get_dds,{
   if (is.null(M1symb())){
     return(NULL)
   } else
-  dds<-DESeq(M1symb()) # Convert to DESeqDataSet format 
+  dds<-DESeq(M1symb()) # Convert to DESeqDataSet format
+  #dds$condtion.. <- factor(condition())
+  dds$condition..<-as.factor(dds$condition..)
+  #dds$condition..<-relevel(dds$condition.., ref = input$ref_DESeq2)
+  design(dds) <- ~ condition.. + 0 # they still have the _vs_ in the names
+  dds<-DESeq(dds, betaPrior=FALSE)
   dds<-nbinomWaldTest(dds) # test for significance of change in deviance. c(nbinomLRT(),nbinomWaldTest())
   return(dds)
 })
-output$group1_contrast<-renderUI({
-  selectInput(inputId = 'group1', label = 'Please select the first group:', choices = levels(factor(condition())),selected = levels(factor(condition()))[1])
-})
-output$group2_contrast<-renderUI({
-  selectInput(inputId = 'group2', label = 'Please select the second group:', choices = levels(factor(condition())),selected = levels(factor(condition()))[2])
-})
 
-# Remove NA containing rows
-res_cases<-reactive({
+output$dds<-renderTable(rownames = TRUE,{
   if (is.null(dds())){
     return(NULL)
-  } else
-  res<-results(dds(),contrast = c('condition', input$group1, input$group2))
-  return(res[complete.cases(res),])
+  } else 
+    return(data.frame(resultsNames(dds())))
 })
+
 # Getting Significant data (padj<0.1)
 resSig<-reactive({
   if (is.null(res_cases())){
@@ -408,7 +431,14 @@ output$counttable<-renderTable(rownames = TRUE,spacing = 'xs',{
   } else
   return(head(counts(M1symb(), normalized = TRUE)))
 })
-
+output$plot_PCA<-renderPlotly({
+  if (is.null(dds())){
+    return(NULL)
+  } else
+    vstcounts <- varianceStabilizingTransformation(dds(), blind=TRUE)
+    g<-plotPCA(vstcounts, intgroup=head(colnames(colData(dds())),-1))
+    return(ggplotly(g))
+})
 output$plot_DispEsts<-renderPlot({
   if (is.null(dds())){
     return(NULL)
@@ -435,14 +465,15 @@ output$heatmap<-renderPlot({
   } else
     return(drawheatmap(dds()))
 })
+# Differential expression section
 DE_data<-eventReactive(input$gene_analyze,{
   return(plotCounts(dds(), gene = input$gene, intgroup = 'condition..',returnData = TRUE,normalized = TRUE))
 })
-output$DE_plot<-renderPlot({
+output$DE_plot<-renderPlotly({
   if (is.null(DE_data())){
     return(NULL)
   } else
-    counts_dotplot(DE_data())
+    counts_dotplotly(DE_data(), input$gene)
 })
 output$DE_table<-renderTable(colnames = TRUE,rownames = TRUE, {
   if (is.null(DE_data())){
@@ -450,6 +481,37 @@ output$DE_table<-renderTable(colnames = TRUE,rownames = TRUE, {
   } else
     DE_data()
 })
+output$DE_sum_table<-renderTable(colnames = TRUE,rownames = TRUE, {
+  if (is.null(DE_data())){
+    return(NULL)
+  } else
+    return(sum_table(DE_data()))
+})
+# Pairwise section
+
+# Remove NA containing rows
+res_cases<-eventReactive(input$pairwise,{
+  contrast_list<-NULL
+  for (n in 1:length(row.names(table(condition)))){
+    if (row.names(table(condition))[n]==input$ref_DESeq2){
+      contrast_list<- c(contrast_list,1)
+    } else if (row.names(table(condition))[n]==input$contrast_DESeq2){
+      contrast_list<- c(contrast_list,-1)
+    } else
+      contrast_list<-c(contrast_list,0)
+  }
+  res<-results(dds(), contrast = contrast_list)
+  return(res[complete.cases(res),])
+})
+output$pw_table<-renderTable(rownames = TRUE,{
+  #return(resultsNames(dds()))
+  if (is.null(res_cases())){
+    return(NULL)
+  } else
+  return(head(data.frame(res_cases())))
+})
 }
+
+
 
 shinyApp(ui, server)

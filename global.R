@@ -94,10 +94,23 @@ volcano_plot<-function(res_cases){
   textxy(df_Sig$res_cases.log2FoldChange, df_Sig$X.log.res_cases.pvalue., labs=row.names(df_Sig), cex=.8)
 }
 # COunt plot
-counts_dotplot<-function(df){
-  df$condition..<-as.factor(df$condition..)
+data_summary <- function(x) {
+  m <- mean(x)
+  ymin <- m-sd(x)
+  ymax <- m+sd(x)
+  return(c(y=m,ymin=ymin,ymax=ymax))
+}
+counts_dotplotly<-function(df,genename){
   p<-ggplot(df, aes(x=condition.., y=count)) + 
-    geom_dotplot(binaxis='y', stackdir='center') +
-    labs(title=input$gene,x="Group", y = "Counts")
-  return(p)
+    ggtitle(label = genename) +
+    geom_count(stat="identity") +
+    stat_summary(fun.data=data_summary, geom='errorbar', color="red",position = position_dodge(.9)) 
+  return(ggplotly(p))
+}
+sum_table<-function(df){
+  df_mean <- ddply(.data = df, .variables = 'condition..',summarise, length = mean(count))
+  df_sd <- ddply(.data = df, .variables = 'condition..', summarise, length = sd(count))
+  df_sum <- data.frame(df_mean, df_sd$length)
+  df_sum <- rename(df_sum, c('condition'='Group','length'='Mean',"df_sd.length" = "SD"))
+  return(df_sum)
 }

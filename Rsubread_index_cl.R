@@ -1,5 +1,3 @@
-
-
 # ======== Packages required =========
 if("Xmisc" %in% rownames(installed.packages()) == FALSE) {
   install.packages(Xmisc)}
@@ -11,14 +9,14 @@ parser$add_usage('Rsubread_index_cl.R [options]')
 parser$add_description('An executable R script parsing arguments from Unix-like command line.')
 parser$add_argument('--h',type='logical', action='store_true', help='Print the help page')
 parser$add_argument('--help',type='logical',action='store_true',help='Print the help page')
-parser$add_argument('--dir', type = 'character', default = getwd(), help = 'Enter your working directory')
-parser$add_argument('--i', type = 'character', default = 'hg', help = 'Name your index')
-parser$add_argument('--db', type = 'character', default = 'genome.fa', help = 'basename of created index files')
-parser$add_argument('--gI', type = 'logical', default = FALSE, help = 'logical  indicating  if  a  gapped  index  or  a  full  index  will  be  built.A  gappedindex contains 16mers (subreads) that are extracted every three bases from areference genome, whereas a full index contains subreads extracted from everychromosomal location of a genome.   The index contains a hash table,  whichincludes sequences of subreads and their corresponding chromosomal locations.Default value of this argument isFALSE(ie. a full index is built).')
-parser$add_argument('--iS', type = 'logical', default = FALSE, help = 'logical indicating if an index can be split into multiple blocks. The block size isdetermined by value of parametermemory.FALSEby default (ie. a single-blockindex is generated).')
-parser$add_argument('--m', type = 'numeric', default = 8000, help = 'a numeric value specifying the amount of memory (in megabytes) used for storing the index during read mapping. 8000 MB by default. Note that this optionis ignored when indexSplit is FALSE')
-parser$add_argument('--TH', type = 'numeric', default = 100, help = 'a numeric value specifying the threshold for removing highly repetitive subreads(16bp mers).  100 by default.  Subreads will be excluded from the index if theyoccur more than threshold number of times in the genome.')
-parser$add_argument('--cs', type = 'logical', default = FALSE, help = 'logical specifying the mode of the index.  IfTRUE, a color space index will bebuilt. Otherwise, a base space index will be built.')
+parser$add_argument('--dir', type = 'character', default = getwd(), help = '"directory",Enter your working directory')
+parser$add_argument('--i', type = 'character', default = 'hg', help = '"index",Name your index')
+parser$add_argument('--db', type = 'character', default = 'genome.fa', help = '"database",basename of created index files')
+parser$add_argument('--gI', type = 'logical', default = FALSE, help = '"gappedIndex", logical  indicating  if  a  gapped  index  or  a  full  index  will  be  built.A gappedindex contains 16mers (subreads) that are extracted every three bases from areference genome, whereas a full index contains subreads extracted from everychromosomal location of a genome.   The index contains a hash table,  whichincludes sequences of subreads and their corresponding chromosomal locations.Default value of this argument isFALSE(ie. a full index is built).')
+parser$add_argument('--iS', type = 'logical', default = FALSE, help = '"indexSplit", logical indicating if an index can be split into multiple blocks. The block size isdetermined by value of parametermemory.FALSEby default (ie. a single-blockindex is generated).')
+parser$add_argument('--m', type = 'numeric', default = 8000, help = '"memory", a numeric value specifying the amount of memory (in megabytes) used for storing the index during read mapping. 8000 MB by default. Note that this optionis ignored when "iS" is FALSE')
+parser$add_argument('--TH', type = 'numeric', default = 100, help = '"threshold",a numeric value specifying the threshold for removing highly repetitive subreads(16bp mers).  100 by default.  Subreads will be excluded from the index if theyoccur more than threshold number of times in the genome.')
+parser$add_argument('--cs', type = 'logical', default = FALSE, help = '"colorspace",logical specifying the mode of the index. If TRUE, a color space index will bebuilt. Otherwise, a base space index will be built.')
 parser$helpme()
 # === variables ====
 dirPath <- dir
@@ -38,13 +36,8 @@ if (!check.packages(Rsubread)){
     install.packages("BiocManager")
   
   BiocManager::install("Rsubread")}  
-if (!check.packages(R.utils)){
-  install.packages(R.utils)}
-if (!check.packages(rapportools)){
-  install.packages(rapportools)}
+
 library(Rsubread)
-library(R.utils)
-library(rapportools)
 
 # ======== build index (biuld index in server if possible) ==========
 if (!file.exists(paste0(basename,".00.b.array"))){

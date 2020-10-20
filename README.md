@@ -13,7 +13,7 @@ Please see the options by launching help function '-h' or '--help' prior to usin
 # Rsubread_align_cl.R
 group.xlsx or group.txt \
 For example. \
-    Sample_names	      Groups\
+    Sample_names          Groups\
 A1.S1.gz.subread.BAM    	A\
 A2.S2.gz.subread.BAM        A\
 A3.S3.gz.subread.BAM        A\
@@ -25,4 +25,4 @@ C2.S8.gz.subread.BAM        C\
 C3.S9.gz.subread.BAM        C\
 D1.S10.gz.subread.BAM       D\
 D2.S11.gz.subread.BAM       D\
-D3.S12.gz.subread.BAM	    D\
+D3.S12.gz.subread.BAM	    D

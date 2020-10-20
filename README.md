@@ -11,8 +11,8 @@ R Packages:
 Please see the options by launching help function '-h' or '--help' prior to using this script. 
 
 # Rsubread_align_cl.R
-group.xlsx or group.txt
-For example.
+group.xlsx or group.txt \
+For example. \
     Sample_names	      Groups\
 A1.S1.gz.subread.BAM    	A\
 A2.S2.gz.subread.BAM        A\

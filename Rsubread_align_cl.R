@@ -72,16 +72,6 @@ if (dir.exists(dirPath)){
   print("Directory is not existing!")
   quit()
 }
-
-# ======== Packages required (cont.) =========
-if (!check.packages(Rsubread)){
-  if (!requireNamespace("BiocManager", quietly = TRUE))
-    install.packages("BiocManager")
-  
-  BiocManager::install("Rsubread")}  
-
-library(Rsubread)
-# ===
 index<-i
 # Assign R1 to readfile1; R2 to readfile2
 fastq_files <- list.files(dirPath,pattern = ".gz$")
@@ -94,13 +84,21 @@ for (f in fastq_files){
     r2<-c(r2,f)
   }
 }
-
 readfile1 <- file.path(dirPath, r1)
 readfile2 <- file.path(dirPath, r2)
+
 if (rGI=='NULL'){rGI <-NULL}
 if (rG=='NULL'){rG <-NULL}
 if (ae=='NULL'){ae <-NULL}
 if (cA=='NULL'){cA <-NULL}
+
+# ======== Packages required (cont.) =========
+if (!check.packages(Rsubread)){
+  if (!requireNamespace("BiocManager", quietly = TRUE))
+    install.packages("BiocManager")  
+  BiocManager::install("Rsubread")}  
+
+library(Rsubread)
 # === execute align command
 
 align(

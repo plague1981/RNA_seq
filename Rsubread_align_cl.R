@@ -1,6 +1,6 @@
 # ======== Packages required =========
 if("Xmisc" %in% rownames(installed.packages()) == FALSE) {
-  install.packages(Xmisc)}
+  install.packages('Xmisc')}
 library(Xmisc)
 
 # === setting environment ===
@@ -85,7 +85,7 @@ for (f in fastq_files){
   }
 }
 readfile1 <- file.path(dirPath, r1)
-readfile2 <- file.path(dirPath, r2)
+if (!is.null(r2[1])){readfile2 <- file.path(dirPath, r2)} else {readfile2<-NULL}
 
 if (rGI=='NULL'){rGI <-NULL}
 if (rG=='NULL'){rG <-NULL}

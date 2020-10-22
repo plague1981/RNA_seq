@@ -1,9 +1,10 @@
 # ======== Packages required =========
 if("Xmisc" %in% rownames(installed.packages()) == FALSE) {
-  install.packages('Xmisc')}
+  install.packages(Xmisc)}
 library(Xmisc)
 
 # === setting environment ===
+
 parser <- ArgumentParser$new()
 parser$add_usage('Rsubread_index_cl.R [options]')
 parser$add_description('An executable R script parsing arguments from Unix-like command line.')
@@ -38,7 +39,7 @@ parser$add_argument('--miF', type = 'numeric', default = 50, help = 'numeric val
 parser$add_argument('--maF', type = 'numeric', default = 600, help = 'numeric value giving the maximum fragment length.')
 parser$add_argument('--or', type = 'character', default = 'fr', help = 'giving the orientation of the two reads from the same pair.  It has three possible values including "fr","ff" and "rf"')
 # number of CPU threads
-parser$add_argument('--Ct', type = 'numeric', default = 1, help = 'numeric value giving the number of threads used for mapping.')
+parser$add_argument('--Ct', type = 'integer', default = 1, help = 'numeric value giving the number of threads used for mapping.')
 # read group
 parser$add_argument('--rGI', type = 'character', default = 'NULL', help = 'a character string giving the read group ID.')
 parser$add_argument('--rG', type = 'character', default = 'NULL', help = 'This string will be added to theread group (RG) header in the mapping output.')
@@ -72,6 +73,16 @@ if (dir.exists(dirPath)){
   print("Directory is not existing!")
   quit()
 }
+
+# ======== Packages required (cont.) =========
+if (!check.packages(Rsubread)){
+  if (!requireNamespace("BiocManager", quietly = TRUE))
+    install.packages("BiocManager")
+  
+  BiocManager::install("Rsubread")}  
+
+library(Rsubread)
+# === variants 
 index<-i
 # Assign R1 to readfile1; R2 to readfile2
 fastq_files <- list.files(dirPath,pattern = ".gz$")
@@ -85,20 +96,12 @@ for (f in fastq_files){
   }
 }
 readfile1 <- file.path(dirPath, r1)
-if (!is.null(r2[1])){readfile2 <- file.path(dirPath, r2)} else {readfile2<-NULL}
+if (!is.null(r2[1])){readfile2 <- file.path(dirPath, r2)} else {readfile2 <-NULL}
 
 if (rGI=='NULL'){rGI <-NULL}
 if (rG=='NULL'){rG <-NULL}
 if (ae=='NULL'){ae <-NULL}
 if (cA=='NULL'){cA <-NULL}
-
-# ======== Packages required (cont.) =========
-if (!check.packages(Rsubread)){
-  if (!requireNamespace("BiocManager", quietly = TRUE))
-    install.packages("BiocManager")  
-  BiocManager::install("Rsubread")}  
-
-library(Rsubread)
 # === execute align command
 
 align(

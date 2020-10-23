@@ -126,7 +126,7 @@ Rsub_fc<-function(bam_files){
                 tmpDir = ".",
                 verbose = FALSE)
 }
-setwd('C:\\Users\\Changyi.Lin\\Documents\\DNA sequencing template')
+
 # ===== Import group names from groups.txt or groups.xlsx
 print("Importing groups.xlsx")
 if (file.exists("groups.xlsx")){

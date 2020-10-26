@@ -6,7 +6,7 @@ library(Xmisc)
 # === setting environment ===
 parser <- ArgumentParser$new()
 parser$add_usage('Rsubread_index_cl.R [options]')
-parser$add_description('An executable R script parsing arguments from Unix-like command line.')
+parser$add_description('An executable R script parsing arguments from Unix-like command line. Build index files for Rsubead')
 parser$add_argument('--h',type='logical', action='store_true', help='Print the help page')
 parser$add_argument('--help',type='logical',action='store_true',help='Print the help page')
 parser$add_argument('--dir', type = 'character', default = getwd(), help = '"directory",Enter your working directory')
@@ -34,9 +34,8 @@ database <- db
 if (!check.packages(Rsubread)){
   if (!requireNamespace("BiocManager", quietly = TRUE))
     install.packages("BiocManager")
-  
-  BiocManager::install("Rsubread")}  
-
+  BiocManager::install("Rsubread")
+}  
 library(Rsubread)
 
 # ======== build index (biuld index in server if possible) ==========

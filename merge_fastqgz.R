@@ -31,20 +31,22 @@ if (!check.packages('ShortRead')){
 if (!check.packages('gsubfn')){install.packages('gsubfn')}
 library('ShortRead')
 library('gsubfn')
+
 # =============================
-all.gz.files<-list.files(dirPath, 'L00[1-9]_R[1,2]_001.fastq.gz$')
-
-sample_names<-NULL
-for(gz.file in all.gz.files){
-  sample_name<-regmatches(gz.file, gregexpr(".*?_L", gz.file))[[1]]
-  sample_names<-c(sample_names,sample_name)
+dirPath<-'C:/Users/Changyi.Lin/Desktop/Vincent'
+R1.gz.files<-list.files(dirPath, 'L00[1-9]_R1_001.fastq.gz$')
+R2.gz.files<-list.files(dirPath, 'L00[1-9]_R2_001.fastq.gz$')
+# merge R1 files
+R1.sample_names<-NULL
+for(gz.file in R1.gz.files){
+  R1.sample_name<-regmatches(gz.file, gregexpr(".*?_L", gz.file))[[1]]
+  R1.sample_names<-c(R1.sample_names,R1.sample_name)
 }
-group_names<-row.names(table(sample_names))
+R1.group_names<-row.names(table(R1.sample_names))
 
-
-for (group_name in group_names){
+for (group_name in R1.group_names){
   fls<-NULL
-  for (gz.file in all.gz.files){
+  for (gz.file in R1.gz.files){
     if (regmatches(gz.file, gregexpr(".*?_L", gz.file))[[1]]==group_name){
       fls<-c(fls,gz.file)
     }
@@ -55,4 +57,25 @@ for (group_name in group_names){
     writeFastq(fq, fout, mode="a", compress=TRUE)
   }
 }
-
+# merge R2 files if paired-end
+if(!rapportools::is.empty(R2.gz.files)){
+  R2.sample_names<-NULL
+  for(gz.file in R2.gz.files){
+    R2.sample_name<-regmatches(gz.file, gregexpr(".*?_L", gz.file))[[1]]
+    R2.sample_names<-c(R2.sample_names,R2.sample_name)
+  }
+  R2.group_names<-row.names(table(R2.sample_names))
+  for (group_name in R2.group_names){
+    fls<-NULL
+    for (gz.file in R2.gz.files){
+      if (regmatches(gz.file, gregexpr(".*?_L", gz.file))[[1]]==group_name){
+        fls<-c(fls,gz.file)
+      }
+    }
+    fout = paste0(gsub(x = group_name,pattern = '_L',replacement = '_R2'),".fastq.gz")
+    for (fl in fls) {
+      fq = readFastq(fl)
+      writeFastq(fq, fout, mode="a", compress=TRUE)
+    }
+  }
+}

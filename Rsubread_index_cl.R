@@ -48,7 +48,7 @@ if (!file.exists(paste0(basename,".00.b.array"))){
       print(paste0(database," does not exist, please check the filename and try again!"))
       quit()
     }
-buildindex(basename = basename, reference = ref, gappedIndex = gI, indexSplit = iS, memory = m, TH_subread = TH, colorspace = cs)
+buildindex(basename = basename, reference = database, gappedIndex = gI, indexSplit = iS, memory = m, TH_subread = TH, colorspace = cs)
 } else {
   print(paste(basename,"index exists. Please run Rsubread_align.R"))
 }

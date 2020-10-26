@@ -28,17 +28,18 @@ if (!Xmisc::check.packages(rtracklayer)){
   BiocManager::install("rtracklayer")} 
 if (!Xmisc::check.packages(tkWidgets)){
   BiocManager::install("tkWidgets")} 
-
+unloadNamespace("Xmisc")
+library(rtracklayer)
 # === execute align command ===
 # import gff data
-gff_data <- rtracklayer::import(f)
-
+gff_data <- import(f)
 # export gtf data
 chSgz<-tkWidgets::hasChar(".gz", what = "suffix")
 if (chSgz(f)){
   gtf_filename<-gsub(f,pattern = '.gff.gz',replacement = '.gtf')
-  rtracklayer::export(gff_data,gtf_filename,"gtf")
+  export(gff_data,gtf_filename,"gtf")
 } else {
   gtf_filename<-gsub(f,pattern = '.gff',replacement = '.gtf')
-  rtracklayer::export(gff_data,gtf_filename,"gtf")
+  export(gff_data,gtf_filename,"gtf")
 }
+

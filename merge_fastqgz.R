@@ -32,12 +32,11 @@ if (!check.packages('gsubfn')){install.packages('gsubfn')}
 library('ShortRead')
 library('gsubfn')
 # =============================
-
-all.gz.files<-list.files(dirPath, 'gz$')
+all.gz.files<-list.files(dirPath, 'L00[1-9]_R[1,2]_001.fastq.gz$')
 
 sample_names<-NULL
 for(gz.file in all.gz.files){
-  sample_name<-regmatches(gz.file, gregexpr("F.*?_L", gz.file))[[1]]
+  sample_name<-regmatches(gz.file, gregexpr(".*?_L", gz.file))[[1]]
   sample_names<-c(sample_names,sample_name)
 }
 group_names<-row.names(table(sample_names))
@@ -46,7 +45,7 @@ group_names<-row.names(table(sample_names))
 for (group_name in group_names){
   fls<-NULL
   for (gz.file in all.gz.files){
-    if (regmatches(gz.file, gregexpr("F.*?_L", gz.file))[[1]]==group_name){
+    if (regmatches(gz.file, gregexpr(".*?_L", gz.file))[[1]]==group_name){
       fls<-c(fls,gz.file)
     }
   }
@@ -56,3 +55,4 @@ for (group_name in group_names){
     writeFastq(fq, fout, mode="a", compress=TRUE)
   }
 }
+

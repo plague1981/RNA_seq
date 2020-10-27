@@ -168,8 +168,7 @@ Rsub_fc<-function(bam.files){
                 tmpDir = tD,
                 verbose = v)
 }
-setwd('C:/Users/Changyi.Lin/Desktop/Vincent/merged')
-gf<-'groups.xlsx'
+
 # ===== Import group names from groups.txt or groups.xlsx
 chSxlsx<-tkWidgets::hasChar(".xlsx", what = "suffix")
 chStxt<-tkWidgets::hasChar(".txt", what = "suffix")
@@ -190,7 +189,7 @@ names(groups)<-groups_name
 # ==========================================================
 # Get Count table
 # Processing for *.BAM
-dirPath<-getwd()
+
 BAM.files<-list.files(dirPath,pattern = ".BAM$")
 path.BAM.files <- file.path(dirPath, BAM.files)
 # re-order groups based on BAM.files

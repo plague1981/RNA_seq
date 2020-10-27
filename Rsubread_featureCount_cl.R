@@ -195,11 +195,16 @@ path.BAM.files <- file.path(dirPath, BAM.files)
 # re-order groups based on BAM.files
 group_order<-NULL
 for (n in 1:length(BAM.files)){
+  if (!is.element(BAM.files[n], names(groups))){
+    cat(paste0(BAM.files[n], ' dose not exist in groups\n'))
+    cat(paste0('Please check sample names and ',gf, ' \n'))
+    quit()
+  }
   for (m in 1:length(names(groups))){
     if (BAM.files[n]==names(groups)[m]){
       group_order<-c(group_order,m)
       break()
-    }
+    } 
   }
 }
 groups<-groups[group_order]

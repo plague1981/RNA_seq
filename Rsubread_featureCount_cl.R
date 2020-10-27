@@ -11,6 +11,7 @@ parser$add_description('An executable R script parsing arguments from Unix-like 
 parser$add_argument('--h',type='logical', action='store_true', help='Print the help page')
 parser$add_argument('--help',type='logical',action='store_true',help='Print the help page')
 parser$add_argument('--dir', type = 'character', default = getwd(), help = '"directory",Enter your working directory')
+parser$add_argument('--gf', type = 'character', default = 'group.xlsx', help = '"filename",Enter the filename of the group file')
 # annotation
 parser$add_argument('--ai', type = 'character', default = "hg38", help = 'a character string specifying an in-built annotation used for read summarization. It has four possible values including"mm10","mm9","hg38"and"hg19"')
 parser$add_argument('--ae', type = 'character', default = 'NULL', help = 'A character string giving name of a user-provided annotation file or a data frame including user-provided annotation data. If the annotation is in GTF format, it can only be provided as a file')
@@ -36,15 +37,15 @@ parser$add_argument('--rE5', type = 'numeric', default = 0, help = '"readExtensi
 parser$add_argument('--rE3', type = 'numeric', default = 0, help = '"readExtension3", a number of bases extended upstream from 3 end of each read.Negative value is not allowed.')
 parser$add_argument('--r2p', type = 'numeric', default = NULL, help = '"read2pos", each read should be reduced to its 5 most base or 3 mostbase. It has three possible values:NULL,5(denoting 5 most base) and3(denoting 3 most base). Default value is NULL, ie. no read reduction will be performed.')
 # multi-mapping reads
-parser$add_argument('--MMR',type='logical', default = TRUE, help='"countMultiMappingReads",if multi-mapping reads/fragments should be counted. 'NH' tag is used to located multi-mapping reads in the input BAM/SAMfiles.')
+parser$add_argument('--MMR',type='logical', default = TRUE, help='"countMultiMappingReads",if multi-mapping reads/fragments should be counted. ‘NH’ tag is used to located multi-mapping reads in the input BAM/SAMfiles.')
 # fractional counting
 parser$add_argument('--fr',type='logical', default = FALSE, help='"fraction", if fractional counts are produced for multi-mapping readsand/or multi-overlapping reads')
 # long reads
 parser$add_argument('--iL',type='logical', default = FALSE, help='"isLongRead", if input data contain long reads.  This option should be set toTRUEif counting Nanopore or PacBio long reads.')
 # read filtering
 parser$add_argument('--mM',type ='integer', default = 0, help = '"minMQS", the minimum mapping quality score a read must satisfy in orderto be counted. For paired-end reads, at least one end should satisfy this criteria.')
-parser$add_argument('--sO',type='logical', default = FALSE, help='"splitOnly", if  only split alignments (their CIGAR strings containletter 'N') should be included for summarization.')
-parser$add_argument('--nS',type='logical', default = FALSE, help='"nonSplitOnly", if only non-split alignments (their CIGAR strings donot contain letter 'N') should be included for summarization')
+parser$add_argument('--sO',type='logical', default = FALSE, help='"splitOnly", if  only split alignments (their CIGAR strings containletter ’N’) should be included for summarization.')
+parser$add_argument('--nS',type='logical', default = FALSE, help='"nonSplitOnly", if only non-split alignments (their CIGAR strings donot contain letter ’N’) should be included for summarization')
 parser$add_argument('--pO',type='logical', default = FALSE, help='"primaryOnly", if only primary alignments should be counted. Primary and secondary alignments are identified using bit 0x100 in the Flag field of SAM/BAM files')
 parser$add_argument('--iD',type='logical', default = FALSE, help='"ignoreDup", if reads marked as duplicates should be ignored.')
 # strandness
@@ -70,8 +71,7 @@ parser$add_argument('--rRP', type = 'character', default = 'NULL', help = '"repo
 # miscellaneous
 parser$add_argument('--s', type = 'character', default = 'NULL', help = '"sampleSheet", a  character  string  specifying  the  single-cell  RNA  sample  sheet  file.  If NULL, featureCounts runs on the bulk RNAseq mode.')
 parser$add_argument('--cBL', type = 'character', default = 'NULL', help = '"cellBarcodeList", the  file name containing  the  list  of  cell  barcodes  forscRNA sample preparation.')
-
-parser$add_argument('--nt', type = 'integer', default = 10, help = '"maxMOp",the maximum number of 'M' operations (matches or mis-matches)allowed in a CIGAR string.')
+parser$add_argument('--nt', type = 'integer', default = 10, help = '"maxMOp",the maximum number of ‘M’ operations (matches or mis-matches)allowed in a CIGAR string.')
 parser$add_argument('--tD', type = 'character', default = '.', help = '"tmpDir", the  directory  under  which  intermediate  files  aresaved (later removed). By default, current working directory is used.')
 parser$add_argument('--v',type='logical', default = FALSE, help='"verbose", if verbose information for debugging will be generated. .')
 
@@ -98,12 +98,13 @@ if (!check.packages(Rsubread)){
   if (!requireNamespace("BiocManager", quietly = TRUE))
     install.packages("BiocManager")
   BiocManager::install("Rsubread")} 
-
+if (!Xmisc::check.packages(tkWidgets)){
+  BiocManager::install("tkWidgets")} 
 library(Rsubread)
 
 # ========= featurCount ===========
-Rsub_fc<-function(files){
-  featureCounts(files,
+Rsub_fc<-function(bam.files){
+  featureCounts(bam.files,
                 # annotation
                 annot.inbuilt = ai, # c("mm10","mm9","hg38","hg19")
                 annot.ext = ae,
@@ -167,26 +168,43 @@ Rsub_fc<-function(files){
                 tmpDir = tD,
                 verbose = v)
 }
+setwd('C:/Users/Changyi.Lin/Desktop/Vincent/merged')
+gf<-'groups.xlsx'
 # ===== Import group names from groups.txt or groups.xlsx
-print("Importing groups.xlsx")
-if (file.exists("groups.xlsx")){
-  require(readxl)
-  print("groups.xlsx was found")
-  groups <- factor(unlist(read_excel("groups.xlsx",range=cell_cols("B"))))
-} else if (file.exists("groups.txt")){
-  print("groups.xlsx was not found, loading data from groups.txt")
-  groups<- read.delim("groups.txt")
-  groups<- unlist(groups[,"Groups"])
+chSxlsx<-tkWidgets::hasChar(".xlsx", what = "suffix")
+chStxt<-tkWidgets::hasChar(".txt", what = "suffix")
+cat(paste0("Importing ",gf,'\n'))
+if (file.exists(gf) && chSxlsx(gf)){
+  cat(paste0(gf," was found"))
+  groups <- factor(unlist(readxl::read_excel("groups.xlsx",range=cell_cols("B"))))
+  groups_name <- unlist(readxl::read_excel("groups.xlsx",range=cell_cols("A")))
+} else if (file.exists(gf) && chStxt(gf)){
+  groups<- read.delim(gf)
+  groups<- factor(unlist(groups[,"Groups"]))
+  groups_name<- unlist(groups[,"Sample_names"])
 } else {
-  cat("Neither groups.xlsx nor groups.txt was found")
+  cat(paste0("Cannot find ",gf,'\n'))
   quit()
 }
-
+names(groups)<-groups_name
 # ==========================================================
 # Get Count table
 # Processing for *.BAM
+dirPath<-getwd()
 BAM.files<-list.files(dirPath,pattern = ".BAM$")
 path.BAM.files <- file.path(dirPath, BAM.files)
+# re-order groups based on BAM.files
+group_order<-NULL
+for (n in 1:length(BAM.files)){
+  for (m in 1:length(names(groups))){
+    if (BAM.files[n]==names(groups)[m]){
+      group_order<-c(group_order,m)
+      break()
+    }
+  }
+}
+groups<-groups[group_order]
+
 # analyzing data
 fc<-Rsub_fc(path.BAM.files)
 # Create a DGEList object from fc
@@ -195,4 +213,3 @@ y<-DGEList(counts = fc$counts[,1:length(path.BAM.files)],genes = fc$annotation[,
 require(xlsx)
 write.table(y$counts, file="counts.txt", row.names = TRUE, col.names = TRUE, sep = "\t" )
 write.table(y$genes, file="genes.txt", row.names = TRUE, col.names = TRUE, sep = "\t" )
-

@@ -1,11 +1,18 @@
 # ======== Packages required =========
 options(java.parameters = c("-XX:+UseConcMarkSweepGC", "-Xmx16384m"))
-if("Xmisc" %in% rownames(installed.packages()) == FALSE) {
-  install.packages(Xmisc)}
-library(Xmisc)
-if (!check.packages('readxl')){install.packages('readxl')}
-if (!check.packages('xlsx')){install.packages('xlsx')}
-if (!check.packages('edgeR')){install.packages('edgeR')}
+packages<-c('Xmisc','readxl','xlsx')
+for (package in packages){
+  if(package %in% rownames(installed.packages()) == FALSE) {
+  install.packages(package)}
+}
+
+if (!requireNamespace("BiocManager", quietly = TRUE))
+  install.packages("BiocManager")
+bio.packages<-c('Rsubread','tkWidgets','edgeR')
+for (bio.package in bio.packages){
+  if(bio.package %in% rownames(installed.packages()) == FALSE) {
+    BiocManager::install(bio.package)}
+}
 # === setting environment ===
 parser <- Xmisc::ArgumentParser$new()
 parser$add_usage('Rsubread_featureCount_cl.R [options]')
@@ -90,30 +97,20 @@ if (dir.exists(dirPath)){
 if (ae=='NULL'){ae <-NULL}
 if (GTe=='NULL'){GTe <-NULL}
 if (cA=='NULL'){cA <-NULL}
-if (nO==0){nO <-NULL}
-if (nOF==0){nOF <-NULL}
-if (r2p==0){r2P <-NULL}
 if (g=='NULL'){g <-NULL}
 if (rR=='NULL'){rR <-NULL}
 if (rRP=='NULL'){rRP <-NULL}
 if (s=='NULL'){s <-NULL}
 if (cBL=='NULL'){cBL <-NULL}
-# ======== Packages required (cont.) =========
-if (!check.packages(Rsubread)){
-  if (!requireNamespace("BiocManager", quietly = TRUE))
-    install.packages("BiocManager")
-  BiocManager::install("Rsubread")} 
-if (!Xmisc::check.packages(tkWidgets)){
-  BiocManager::install("tkWidgets")} 
-library(Rsubread)
 # ===== Import group names from groups.txt or groups.xlsx
+
 chSxlsx<-tkWidgets::hasChar(".xlsx", what = "suffix")
 chStxt<-tkWidgets::hasChar(".txt", what = "suffix")
 cat(paste0("Importing ",gf,'\n'))
 if (file.exists(gf) && chSxlsx(gf)){
   cat(paste0(gf," was found\n"))
-  groups <- factor(unlist(readxl::read_excel("groups.xlsx",range=cell_cols("B"))))
-  groups_name <- unlist(readxl::read_excel("groups.xlsx",range=cell_cols("A")))
+  groups <- factor(unlist(readxl::read_excel("groups.xlsx",range=readxl::cell_cols("B"))))
+  groups_name <- unlist(readxl::read_excel("groups.xlsx",range=readxl::cell_cols("A")))
 } else if (file.exists(gf) && chStxt(gf)){
   groups<- read.delim(gf)
   groups<- factor(unlist(groups[,"Groups"]))
@@ -146,8 +143,7 @@ for (n in 1:length(BAM.files)){
 }
 groups<-groups[group_order]
 # analyzing data
-print(path.BAM.files)
-fc<-featureCounts(path.BAM.files
+fc<-Rsubread::featureCounts(path.BAM.files
                   # annotation
                   ,annot.inbuilt = ai # c("mm10","mm9","hg38","hg19")
                   ,annot.ext = ae
@@ -164,14 +160,14 @@ fc<-featureCounts(path.BAM.files
                   ,fracOverlap = fO
                   ,fracOverlapFeature = fOF
                   ,largestOverlap = lO
-                  ,nonOverlap = nO
-                  ,nonOverlapFeature = nOF
+                  #,nonOverlap = nO
+                  #,nonOverlapFeature = nOF
                   # Read shift, extension and reduction
                   ,readShiftType = rST
                   ,readShiftSize = rSS
                   ,readExtension5 = rE5
                   ,readExtension3 = rE3
-                  ,read2pos = r2p
+                  #,read2pos = r2p
                   # multi-mapping reads
                   ,countMultiMappingReads = MMR
                   # fractional counting

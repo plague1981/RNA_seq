@@ -3,15 +3,17 @@ options(java.parameters = c("-XX:+UseConcMarkSweepGC", "-Xmx16384m"))
 if("Xmisc" %in% rownames(installed.packages()) == FALSE) {
   install.packages(Xmisc)}
 library(Xmisc)
-
+if (!check.packages('readxl')){install.packages('readxl')}
+if (!check.packages('xlsx')){install.packages('xlsx')}
+if (!check.packages('edgeR')){install.packages('edgeR')}
 # === setting environment ===
-parser <- ArgumentParser$new()
+parser <- Xmisc::ArgumentParser$new()
 parser$add_usage('Rsubread_featureCount_cl.R [options]')
 parser$add_description('An executable R script parsing arguments from Unix-like command line.')
 parser$add_argument('--h',type='logical', action='store_true', help='Print the help page')
 parser$add_argument('--help',type='logical',action='store_true',help='Print the help page')
 parser$add_argument('--dir', type = 'character', default = getwd(), help = '"directory",Enter your working directory')
-parser$add_argument('--gf', type = 'character', default = 'group.xlsx', help = '"filename",Enter the filename of the group file')
+parser$add_argument('--gf', type = 'character', default = 'groups.xlsx', help = '"filename",Enter the filename of the group file')
 # annotation
 parser$add_argument('--ai', type = 'character', default = "hg38", help = 'a character string specifying an in-built annotation used for read summarization. It has four possible values including"mm10","mm9","hg38"and"hg19"')
 parser$add_argument('--ae', type = 'character', default = 'NULL', help = 'A character string giving name of a user-provided annotation file or a data frame including user-provided annotation data. If the annotation is in GTF format, it can only be provided as a file')
@@ -28,14 +30,14 @@ parser$add_argument('--mO', type = 'numeric', default = 1, help = '"minOverlap",
 parser$add_argument('--fO', type = 'numeric', default = 0, help = '"fracOverlap", a minimum fraction of overlapping bases in a read that is requiredfor read assignment. Value should be within range [0,1].')
 parser$add_argument('--fOF', type = 'numeric', default = 0, help = '"fracOverlapFeature",a minimum fraction of bases included in a feature that is required. for overlapping with a read or a read pair. Value should be within range [0,1].')
 parser$add_argument('--lO',type='logical', default = FALSE, help='"largestOverlap",a read (or read pair) will be assigned to the feature (or meta-feature) thathas the largest number of overlapping bases, if the read (or read pair) overlapswith multiple features (or meta-features).')
-parser$add_argument('--nO', type = 'numeric', default = NULL, help = '"nonOverlap",the maximum number of bases in a read (or a read pair) that are allowed not to overlap the assigned feature. "NULL" by default (ie. no limit is set)')
-parser$add_argument('--nOF', type = 'numeric', default = NULL, help = '"nonOverlapFeature",the maximum number of non-overlapping bases allowed in afeature during read assignment. "NULL" by default (ie. no limit is set)')
+parser$add_argument('--nO', type = 'integer', default = 0, help = '"nonOverlap",the maximum number of bases in a read (or a read pair) that are allowed not to overlap the assigned feature. "NULL" by default (ie. no limit is set)')
+parser$add_argument('--nOF', type = 'integer', default = 0, help = '"nonOverlapFeature",the maximum number of non-overlapping bases allowed in afeature during read assignment. "NULL" by default (ie. no limit is set)')
 # read shift, extension and reduction
 parser$add_argument('--rST', type = 'character', default = 'upstream', help = '"readShiftType",a character string indicating how reads should be shifted.  It has four possiblevalues  includingupstream,downstream,leftandright.')
 parser$add_argument('--rSS', type = 'numeric', default = 0, help = '"readShiftSize", the number of bases the reads will be shifted by. Negative value is not allowed.')
 parser$add_argument('--rE5', type = 'numeric', default = 0, help = '"readExtension5", a number of bases extended upstream from 5 end of each read.Negative value is not allowed.')
 parser$add_argument('--rE3', type = 'numeric', default = 0, help = '"readExtension3", a number of bases extended upstream from 3 end of each read.Negative value is not allowed.')
-parser$add_argument('--r2p', type = 'numeric', default = NULL, help = '"read2pos", each read should be reduced to its 5 most base or 3 mostbase. It has three possible values:NULL,5(denoting 5 most base) and3(denoting 3 most base). Default value is NULL, ie. no read reduction will be performed.')
+parser$add_argument('--r2p', type = 'integer', default = 0, help = '"read2pos", each read should be reduced to its 5 most base or 3 mostbase. It has three possible values:NULL,5(denoting 5 most base) and3(denoting 3 most base). Default value is NULL, ie. no read reduction will be performed.')
 # multi-mapping reads
 parser$add_argument('--MMR',type='logical', default = TRUE, help='"countMultiMappingReads",if multi-mapping reads/fragments should be counted. ‘NH’ tag is used to located multi-mapping reads in the input BAM/SAMfiles.')
 # fractional counting
@@ -86,8 +88,11 @@ if (dir.exists(dirPath)){
   quit()
 }
 if (ae=='NULL'){ae <-NULL}
-if (cA=='NULL'){cA <-NULL}
 if (GTe=='NULL'){GTe <-NULL}
+if (cA=='NULL'){cA <-NULL}
+if (nO==0){nO <-NULL}
+if (nOF==0){nOF <-NULL}
+if (r2p==0){r2P <-NULL}
 if (g=='NULL'){g <-NULL}
 if (rR=='NULL'){rR <-NULL}
 if (rRP=='NULL'){rRP <-NULL}
@@ -101,80 +106,12 @@ if (!check.packages(Rsubread)){
 if (!Xmisc::check.packages(tkWidgets)){
   BiocManager::install("tkWidgets")} 
 library(Rsubread)
-
-# ========= featurCount ===========
-Rsub_fc<-function(bam.files){
-  featureCounts(bam.files,
-                # annotation
-                annot.inbuilt = ai, # c("mm10","mm9","hg38","hg19")
-                annot.ext = ae,
-                isGTFAnnotationFile = iG,
-                GTF.featureType = Gf,
-                GTF.attrType = GT,
-                GTF.attrType.extra = GTe,
-                chrAliases = cA,
-                # level of summarization
-                useMetaFeatures = uMF,
-                # overlap between reads and features
-                allowMultiOverlap = aMO,
-                minOverlap = mO,
-                fracOverlap = fO,
-                fracOverlapFeature = fOF,
-                largestOverlap = lO,
-                nonOverlap = nO,
-                nonOverlapFeature = nOF,
-                # Read shift, extension and reduction
-                readShiftType = rST,
-                readShiftSize = rSS,
-                readExtension5 = rE5,
-                readExtension3 = rE3,
-                read2pos = r2p,
-                # multi-mapping reads
-                countMultiMappingReads = MMR,
-                # fractional counting
-                fraction = fr,
-                # long reads
-                isLongRead = iL,
-                # read filtering
-                minMQS = mM,
-                splitOnly = sO,
-                nonSplitOnly = nS,
-                primaryOnly = pO,
-                ignoreDup = iD,
-                # strandness
-                strandSpecific = sS,
-                # exon-exon junctions
-                juncCounts = jC,
-                genome = g,
-                # parameters specific to paired end reads
-                isPairedEnd = iPE,
-                requireBothEndsMapped = BEM,
-                checkFragLength = cFL,
-                minFragLength = miF,
-                maxFragLength = maF,
-                countChimericFragments = cCF,
-                autosort = a,
-                # number of CPU threads
-                nthreads = nt,
-                # read group
-                byReadGroup = bRG,
-                # report assignment result for each read
-                reportReads = rR, #c(CORE, SAM and BAM)
-                reportReadsPath = rRP,
-                # miscellaneous
-                sampleSheet = s,
-                cellBarcodeList = cBL,
-                maxMOp = mM,
-                tmpDir = tD,
-                verbose = v)
-}
-
 # ===== Import group names from groups.txt or groups.xlsx
 chSxlsx<-tkWidgets::hasChar(".xlsx", what = "suffix")
 chStxt<-tkWidgets::hasChar(".txt", what = "suffix")
 cat(paste0("Importing ",gf,'\n'))
 if (file.exists(gf) && chSxlsx(gf)){
-  cat(paste0(gf," was found"))
+  cat(paste0(gf," was found\n"))
   groups <- factor(unlist(readxl::read_excel("groups.xlsx",range=cell_cols("B"))))
   groups_name <- unlist(readxl::read_excel("groups.xlsx",range=cell_cols("A")))
 } else if (file.exists(gf) && chStxt(gf)){
@@ -208,11 +145,74 @@ for (n in 1:length(BAM.files)){
   }
 }
 groups<-groups[group_order]
-
 # analyzing data
-fc<-Rsub_fc(path.BAM.files)
+print(path.BAM.files)
+fc<-featureCounts(path.BAM.files
+                  # annotation
+                  ,annot.inbuilt = ai # c("mm10","mm9","hg38","hg19")
+                  ,annot.ext = ae
+                  ,isGTFAnnotationFile = iG
+                  ,GTF.featureType = Gf
+                  ,GTF.attrType = GT
+                  ,GTF.attrType.extra = GTe
+                  ,chrAliases = cA
+                  # level of summarization
+                  ,useMetaFeatures = uMF
+                  # overlap between reads and features
+                  ,allowMultiOverlap = aMO
+                  ,minOverlap = mO
+                  ,fracOverlap = fO
+                  ,fracOverlapFeature = fOF
+                  ,largestOverlap = lO
+                  ,nonOverlap = nO
+                  ,nonOverlapFeature = nOF
+                  # Read shift, extension and reduction
+                  ,readShiftType = rST
+                  ,readShiftSize = rSS
+                  ,readExtension5 = rE5
+                  ,readExtension3 = rE3
+                  ,read2pos = r2p
+                  # multi-mapping reads
+                  ,countMultiMappingReads = MMR
+                  # fractional counting
+                  ,fraction = fr
+                  # long reads
+                  ,isLongRead = iL
+                  # read filtering
+                  ,minMQS = mM
+                  ,splitOnly = sO
+                  ,nonSplitOnly = nS
+                  ,primaryOnly = pO
+                  ,ignoreDup = iD
+                  # strandness
+                  ,strandSpecific = sS
+                  # exon-exon junctions
+                  ,juncCounts = jC
+                  ,genome = g
+                  # parameters specific to paired end reads
+                  ,isPairedEnd = iPE
+                  ,requireBothEndsMapped = BEM
+                  ,checkFragLength = cFL
+                  ,minFragLength = miF
+                  ,maxFragLength = maF
+                  ,countChimericFragments = cCF
+                  ,autosort = a
+                  # number of CPU threads
+                  ,nthreads = nt
+                  # read group
+                  ,byReadGroup = bRG
+                  # report assignment result for each read
+                  ,reportReads = rR #c(CORE, SAM and BAM)
+                  ,reportReadsPath = rRP
+                  # miscellaneous
+                  ,sampleSheet = s
+                  ,cellBarcodeList = cBL
+                  ,maxMOp = mM
+                  ,tmpDir = tD
+                  ,verbose = v
+                  )
 # Create a DGEList object from fc
-y<-DGEList(counts = fc$counts[,1:length(path.BAM.files)],genes = fc$annotation[,c("GeneID","Length")], group = groups)
+y<-edgeR::DGEList(counts = fc$counts[,1:length(path.BAM.files)],genes = fc$annotation[,c("GeneID","Length")], group = groups)
 # export data
 require(xlsx)
 write.table(y$counts, file="counts.txt", row.names = TRUE, col.names = TRUE, sep = "\t" )

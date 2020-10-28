@@ -199,6 +199,25 @@ if (1 %in% n_occur[,"Freq"]){
 }
 
 # Add gene symbols and length if needed
+# ensembl reference
+ensembl.genes <-  sub('\\.[0-9]*$', '', row.names(y$counts))
+Symbol <- ensembldb::select(EnsDb.Hsapiens.v79::EnsDb.Hsapiens.v79, keys= ensembl.genes, keytype = "GENEID", columns = c("SYMBOL","GENEID"))
+gene_id_names <- data.frame(Symbol=Symbol)
+# Convert GeneID to Symbols
+for (n in 1:length(ensembl.genes)) {
+  if (is.element(ensembl.genes[n], setdiff(ensembl.genes,gene_id_names[,'Symbol.GENEID']))) {
+      next()
+  } else {
+    for (m in 1:nrow(gene_id_names)){
+      if (ensembl.genes[n]==gene_id_names[m,'Symbol.GENEID']){
+        ensembl.genes[n]<-gene_id_names[m,'Symbol.SYMBOL']
+        break()
+      }
+    }
+  }
+}
+row.names(y)<-ensembl.genes
+# NCBI reference
 if (s_species=='Human'){
   if (!check.packages('org.Hs.eg.db')){BiocManager::install("org.Hs.eg.db")}
   require(org.Hs.eg.db)

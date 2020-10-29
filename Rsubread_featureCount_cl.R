@@ -80,7 +80,7 @@ parser$add_argument('--rRP', type = 'character', default = 'NULL', help = '"repo
 # miscellaneous
 parser$add_argument('--s', type = 'character', default = 'NULL', help = '"sampleSheet", a  character  string  specifying  the  single-cell  RNA  sample  sheet  file.  If NULL, featureCounts runs on the bulk RNAseq mode.')
 parser$add_argument('--cBL', type = 'character', default = 'NULL', help = '"cellBarcodeList", the  file name containing  the  list  of  cell  barcodes  forscRNA sample preparation.')
-parser$add_argument('--nt', type = 'integer', default = 10, help = '"maxMOp",the maximum number of ‘M’ operations (matches or mis-matches)allowed in a CIGAR string.')
+parser$add_argument('--mM', type = 'number', default = 10, help = '"maxMOp",the maximum number of ‘M’ operations (matches or mis-matches)allowed in a CIGAR string.')
 parser$add_argument('--tD', type = 'character', default = '.', help = '"tmpDir", the  directory  under  which  intermediate  files  aresaved (later removed). By default, current working directory is used.')
 parser$add_argument('--v',type='logical', default = FALSE, help='"verbose", if verbose information for debugging will be generated. .')
 

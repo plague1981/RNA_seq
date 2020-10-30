@@ -1,12 +1,24 @@
 # ======== Packages required =========
+# ======== Packages required =========
 options(java.parameters = c("-XX:+UseConcMarkSweepGC", "-Xmx16384m"))
-if("Xmisc" %in% rownames(installed.packages()) == FALSE) {
-  install.packages('Xmisc')}
-library(Xmisc)
+# Rcran
+packages<-c('Xmisc','gsubfn')
+for (package in packages){
+  if(package %in% rownames(installed.packages()) == FALSE) {
+    install.packages(package)}
+}
+# Bioconductor
+if (!requireNamespace("BiocManager", quietly = TRUE))
+  install.packages("BiocManager")
+bio.packages<-c('Shortread')
+for (bio.package in bio.packages){
+  if(bio.package %in% rownames(installed.packages()) == FALSE) {
+    BiocManager::install(bio.package)}
+}
 # === setting environment ===
 parser <- ArgumentParser$new()
-parser$add_usage('edgeR_cl.R [options]')
-parser$add_description('An executable R script parsing arguments from Unix-like command line.')
+parser$add_usage('merge_fastqgz_cl.R [options]')
+parser$add_description('An executable R script parsing arguments from Unix-like command line. Merge multiple lanes fastq.gz data into one')
 parser$add_argument('--h',type='logical', action='store_true', help='Print the help page')
 parser$add_argument('--help',type='logical',action='store_true',help='Print the help page')
 parser$add_argument('--dir', type = 'character', default = getwd(), help = '"directory",Enter your working directory')
@@ -15,21 +27,14 @@ parser$helpme()
 # === variables ====
 
 dirPath <- dir
-setwd(dirPath)
 dirPath <-gsub ('\\\\','/',dirPath)
+setwd(dirPath)
 if (dir.exists(dirPath)){
   cat(paste0("Setting ",dirPath," as the working directory\n"))
 } else {
   cat("Directory is not existing!\n")
   quit()
 }
-# === packages requirement ====
-if (!check.packages('ShortRead')){
-  if (!requireNamespace("BiocManager", quietly = TRUE))
-    install.packages("BiocManager")
-  BiocManager::install('ShortRead')} 
-if (!check.packages('gsubfn')){install.packages('gsubfn')}
-
 # =============================
 R1.gz.files<-list.files(dirPath, 'L00[1-9]_R1_001.fastq.gz$')
 R2.gz.files<-list.files(dirPath, 'L00[1-9]_R2_001.fastq.gz$')

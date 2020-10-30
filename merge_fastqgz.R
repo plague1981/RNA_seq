@@ -29,14 +29,13 @@ if (!check.packages('ShortRead')){
     install.packages("BiocManager")
   BiocManager::install('ShortRead')} 
 if (!check.packages('gsubfn')){install.packages('gsubfn')}
-library('ShortRead')
-library('gsubfn')
 
 # =============================
 R1.gz.files<-list.files(dirPath, 'L00[1-9]_R1_001.fastq.gz$')
 R2.gz.files<-list.files(dirPath, 'L00[1-9]_R2_001.fastq.gz$')
 # merge R1 files
 require(ShortRead)
+require(gsubfn)
 R1.sample_names<-NULL
 for(gz.file in R1.gz.files){
   R1.sample_name<-regmatches(gz.file, gregexpr(".*?_L", gz.file))[[1]]

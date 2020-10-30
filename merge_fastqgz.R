@@ -33,7 +33,6 @@ library('ShortRead')
 library('gsubfn')
 
 # =============================
-dirPath<-'C:/Users/Changyi.Lin/Desktop/Vincent'
 R1.gz.files<-list.files(dirPath, 'L00[1-9]_R1_001.fastq.gz$')
 R2.gz.files<-list.files(dirPath, 'L00[1-9]_R2_001.fastq.gz$')
 # merge R1 files

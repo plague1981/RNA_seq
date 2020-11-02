@@ -2,7 +2,7 @@
 # ======== Packages required =========
 options(java.parameters = c("-XX:+UseConcMarkSweepGC", "-Xmx16384m"))
 # Rcran
-packages<-c('Xmisc','gsubfn')
+packages<-c('Xmisc','gsubfn','rapportools')
 for (package in packages){
   if(package %in% rownames(installed.packages()) == FALSE) {
     install.packages(package)}
@@ -16,7 +16,7 @@ for (bio.package in bio.packages){
     BiocManager::install(bio.package)}
 }
 # === setting environment ===
-parser <- ArgumentParser$new()
+parser <- Xmisc::ArgumentParser$new()
 parser$add_usage('merge_fastqgz_cl.R [options]')
 parser$add_description('An executable R script parsing arguments from Unix-like command line. Merge multiple lanes fastq.gz data into one')
 parser$add_argument('--h',type='logical', action='store_true', help='Print the help page')

@@ -16,7 +16,7 @@ for (bio.package in bio.packages){
 }
 # === setting environment ===
 parser <- Xmisc::ArgumentParser$new()
-parser$add_usage('Rsubread_featureCount_cl.R [options]')
+parser$add_usage('edgeR_cl.R [options]')
 parser$add_description('An executable R script parsing arguments from Unix-like command line.')
 parser$add_argument('--h',type='logical', action='store_true', help='Print the help page')
 parser$add_argument('--help',type='logical',action='store_true',help='Print the help page')

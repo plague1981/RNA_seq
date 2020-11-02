@@ -89,6 +89,7 @@ parser$helpme()
 dirPath <- dir
 dirPath <-gsub ('\\\\','/',dirPath)
 if (dir.exists(dirPath)){
+  setwd(dirPath)
   print(paste0("Setting ",dirPath," as the working directory"))
 } else {
   print("Directory is not existing!")

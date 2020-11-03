@@ -9,7 +9,7 @@ for (package in packages){
 # Bioconductor
 if (!requireNamespace("BiocManager", quietly = TRUE))
   install.packages("BiocManager")
-bio.packages<-c('Rsubread','edgeR',"org.Hs.eg.db","org.Mm.eg.db",'EnsDb.Hsapiens.v79',"topGO")
+bio.packages<-c('Rsubread','edgeR',"org.Hs.eg.db","org.Mm.eg.db","topGO")
 for (bio.package in bio.packages){
   if(bio.package %in% rownames(installed.packages()) == FALSE) {
     BiocManager::install(bio.package)}
@@ -82,33 +82,51 @@ if (convert_inp=="y"|convert_inp=="yes"){
   repeat{
     cat("Which database are you using?\n")
     cat('1. NCBI\n')
-    cat('2. Ensembl(only human database available)\n')
+    cat('2. Ensembl\n')
     db_inp <- readLines("stdin", n = 1L)
     if (db_inp==1){
       db_inp<-'NCBI'
-      cat(paste("you entered", db_inp, 'as the database\n'))
+      db_keytype<-"ENTREZID"
       break()} 
     else if (db_inp==2){
       db_inp<-'Ensembl'
-      cat(paste("you entered", db_inp, 'as the database\n'))
+      db_keytype<-"ENSEMBL"
       break()} else {cat("Please enter the number![1-2]\n")}
   }
+  cat(paste("you entered", db_inp, 'as the database\n'))
 }
 # Sample info
+Symbol.packages<-c("org.Hs.eg.db","org.Mm.eg.db",'org.Rn.eg.db',"org.EcK12.eg.db")
+s_species<-c('Human','Mouse','Rat','E. coli strain K12')
 repeat{
   cat("What kind species are your samples:\n")
   cat('1. Human\n')
   cat('2. Mouse\n')
+  cat('3. Rat\n')
+  cat('4. E. coli strain K12\n')
   species_inp <- readLines("stdin", n = 1L)
-  if (species_inp==1){
-    s_species<-'Human'
-    cat(paste("you entered", s_species, 'as the species\n'))
-    break()} 
-  else if (species_inp==2){
-    s_species<-'Mouse'
-    cat(paste("you entered", s_species, 'as the species\n'))
-    break()} else {cat("Please enter the number![1-2]\n")}
+  if(as.numeric(species_inp) %in% c(1:4)){
+    break()
+  } else {cat("Please enter the number![1-4]\n")}
 }
+
+if(Symbol.packages[as.numeric(species_inp)] %in% rownames(installed.packages()) == FALSE) {
+  BiocManager::install(Symbol.packages[as.numeric(species_inp)])}
+if (species_inp==1){
+  require(org.Hs.eg.db)
+  database<-org.Hs.eg.db
+} else if (species_inp==2){
+  require(org.Mm.eg.db)
+  database<-org.Mm.eg.db
+} else if (species_inp==3){
+  require(org.Rn.eg.db)
+  database<-org.Rn.eg.db
+} else if (species_inp==4){
+  require(org.EcK12.eg.db)
+  database<-org.EcK12.eg.db  
+}
+
+cat(paste("you entered", s_species[species_inp], 'as the species\n'))
 # Statistics analysis
 repeat{
   cat("Single factor for statistics? Yes or No:\n")
@@ -245,17 +263,9 @@ if (1 %in% n_occur[,"Freq"]){
 # ADD Symbols
 
 if (convert_inp=="y"|convert_inp=="yes"){
-  if (db_inp==1){
-    if (s_species=='Human'){
-      require(org.Hs.eg.db)
-      database<-org.Hs.eg.db
-    } else if (s_species=='Mouse'){
-      require(org.Mm.eg.db)
-      database<-org.Mm.eg.db
-    }
     # NCBI reference
     if (suppressWarnings(!is.na(as.numeric(row.names(y)[1])))){
-      Symbol<- mapIds(database,keys=rownames(y), keytype="ENTREZID", column="SYMBOL")
+      Symbol<- mapIds(database,keys=rownames(y), keytype=db_keytype, column="SYMBOL")
       gene_id_names <- data.frame(Symbol=Symbol)
     # Convert GeneID to Symbols
       gene_names<-NULL
@@ -269,20 +279,7 @@ if (convert_inp=="y"|convert_inp=="yes"){
       }
     row.names(y)<-gene_names
     }
-  } else if (db_inp==2){
-    # Ensembl reference
-    row.names(y$counts) <-  sub('\\.[0-9]*$', '', row.names(y$counts))
-    ensembl.genes<-row.names(y$counts)
-    Symbol <- ensembldb::select(EnsDb.Hsapiens.v79::EnsDb.Hsapiens.v79, keys= ensembl.genes, keytype = "GENEID", columns = c("SYMBOL","GENEID"))
-    common<-intersect(Symbol[,'GENEID'],ensembl.genes)
-    y$counts<-merge(y$counts,Symbol[Symbol[,'GENEID'] %in% common,],by.x = 0, by.y = 2,all = TRUE)
-    row.names(y)<-y$counts[,ncol(y$counts)]
-    y$counts<-y$counts[,-ncol(y$counts)]
-  }
 }
-
-
-
 
 # ======= Overall Differential expression analysis ======
 # Genewise Negative Binomial Generalized Linear Model with Quasi-likelihood
@@ -357,10 +354,6 @@ if (compare_inp=="y"|compare_inp=="yes"){
   write.xlsx(cpm.table, paste0(group_1,group_2,"_genes.cpkm.table.xlsx"))
   # Intepret the differential expression results
   # The gene ontology (GO) enrichment analysis and the KEGG pathway enrichment analysis
-
-  if (s_species=='Human'){
-    species<-"Hs"
-  }
   require(limma)
   require(topGO)
   

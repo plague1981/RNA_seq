@@ -125,8 +125,8 @@ if (species_inp==1){
   require(org.EcK12.eg.db)
   database<-org.EcK12.eg.db  
 }
-
 cat(paste("you entered", s_species[species_inp], 'as the species\n'))
+
 # Statistics analysis
 repeat{
   cat("Single factor for statistics? Yes or No:\n")

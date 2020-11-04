@@ -3,7 +3,7 @@ options(java.parameters = c("-XX:+UseConcMarkSweepGC", "-Xmx16384m"))
 packages<-c('Xmisc','readxl','xlsx')
 for (package in packages){
   if(package %in% rownames(installed.packages()) == FALSE) {
-  install.packages(package)}
+    install.packages(package)}
 }
 
 if (!requireNamespace("BiocManager", quietly = TRUE))
@@ -46,22 +46,22 @@ parser$add_argument('--rE5', type = 'numeric', default = 0, help = '"readExtensi
 parser$add_argument('--rE3', type = 'numeric', default = 0, help = '"readExtension3", a number of bases extended upstream from 3 end of each read.Negative value is not allowed.')
 parser$add_argument('--r2p', type = 'integer', default = 0, help = '"read2pos", each read should be reduced to its 5 most base or 3 mostbase. It has three possible values:NULL,5(denoting 5 most base) and3(denoting 3 most base). Default value is NULL, ie. no read reduction will be performed.')
 # multi-mapping reads
-parser$add_argument('--MMR',type='logical', default = TRUE, help='"countMultiMappingReads",if multi-mapping reads/fragments should be counted. ‘NH’ tag is used to located multi-mapping reads in the input BAM/SAMfiles.')
+parser$add_argument('--MMR',type='logical', default = TRUE, help='"countMultiMappingReads",if multi-mapping reads/fragments should be counted. "NH" tag is used to located multi-mapping reads in the input BAM/SAMfiles.')
 # fractional counting
 parser$add_argument('--fr',type='logical', default = FALSE, help='"fraction", if fractional counts are produced for multi-mapping readsand/or multi-overlapping reads')
 # long reads
 parser$add_argument('--iL',type='logical', default = FALSE, help='"isLongRead", if input data contain long reads.  This option should be set toTRUEif counting Nanopore or PacBio long reads.')
 # read filtering
 parser$add_argument('--mM',type ='integer', default = 0, help = '"minMQS", the minimum mapping quality score a read must satisfy in orderto be counted. For paired-end reads, at least one end should satisfy this criteria.')
-parser$add_argument('--sO',type='logical', default = FALSE, help='"splitOnly", if  only split alignments (their CIGAR strings containletter ’N’) should be included for summarization.')
-parser$add_argument('--nS',type='logical', default = FALSE, help='"nonSplitOnly", if only non-split alignments (their CIGAR strings donot contain letter ’N’) should be included for summarization')
+parser$add_argument('--sO',type='logical', default = FALSE, help='"splitOnly", if  only split alignments (their CIGAR strings containletter "N") should be included for summarization.')
+parser$add_argument('--nS',type='logical', default = FALSE, help='"nonSplitOnly", if only non-split alignments (their CIGAR strings donot contain letter "N") should be included for summarization')
 parser$add_argument('--pO',type='logical', default = FALSE, help='"primaryOnly", if only primary alignments should be counted. Primary and secondary alignments are identified using bit 0x100 in the Flag field of SAM/BAM files')
 parser$add_argument('--iD',type='logical', default = FALSE, help='"ignoreDup", if reads marked as duplicates should be ignored.')
 # strandness
 parser$add_argument('--sS',type ='integer', default = 0, help = '"strandSpecific", an integer vector indicating if strand-specific read counting should be performed.Length of the vector should be either1(meaning that the value is applied to allinput files), or equal to the total number of input files provided. Each vector ele-ment should have one of the following three values:0(unstranded),1(stranded)and2(reversely stranded). Default value of this parameter is0(ie. unstrandedread counting is performed for all input files)')
 # exon-exon junctions
 parser$add_argument('--jC',type='logical', default = FALSE, help='"juncCounts", if number of reads supporting each exon-exon junction will bereported. Junctions are identified from those exon-spanning reads in input data.')
-parser$add_argument('--g', type = 'character', default = 'NULL', help = '"genome",the name of a FASTA-format file that includes the ref-erence sequences used in read mapping that produced the provided SAM/BAMfiles..')
+parser$add_argument('--g', type = 'character', default = 'NULL', help = '"genome",the name of a FASTA-format file that includes the ref-erence sequences used in read mapping that produced the provided SAM/BAMfiles.')
 # parameters specific to paired end reads
 parser$add_argument('--iPE',type='logical', default = FALSE, help='"isPairedEnd", if counting should be performed on read pairs or reads.')
 parser$add_argument('--BEM',type='logical', default = FALSE, help='"requireBothEndsMapped", if both ends from the same fragment are required to be suc-cessfully  aligned  before  the  fragment can be assigned to a feature or meta-feature. This parameter is only appliable when isPairedEnd is TRUE')
@@ -80,9 +80,9 @@ parser$add_argument('--rRP', type = 'character', default = 'NULL', help = '"repo
 # miscellaneous
 parser$add_argument('--s', type = 'character', default = 'NULL', help = '"sampleSheet", a  character  string  specifying  the  single-cell  RNA  sample  sheet  file.  If NULL, featureCounts runs on the bulk RNAseq mode.')
 parser$add_argument('--cBL', type = 'character', default = 'NULL', help = '"cellBarcodeList", the  file name containing  the  list  of  cell  barcodes  forscRNA sample preparation.')
-parser$add_argument('--mM', type = 'number', default = 10, help = '"maxMOp",the maximum number of ‘M’ operations (matches or mis-matches)allowed in a CIGAR string.')
+parser$add_argument('--mM', type = 'number', default = 10, help = '"maxMOp",the maximum number of "M" operations (matches or mis-matches)allowed in a CIGAR string.')
 parser$add_argument('--tD', type = 'character', default = '.', help = '"tmpDir", the  directory  under  which  intermediate  files  aresaved (later removed). By default, current working directory is used.')
-parser$add_argument('--v',type='logical', default = FALSE, help='"verbose", if verbose information for debugging will be generated. .')
+parser$add_argument('--v',type='logical', default = FALSE, help='"verbose", if verbose information for debugging will be generated.')
 
 parser$helpme()
 # === variables ====
@@ -125,7 +125,7 @@ names(groups)<-groups_name
 # Get Count table
 # Processing for *.BAM
 
-BAM.files<-list.files(dirPath,pattern = ".BAM$")
+BAM.files<-list.files(dirPath,pattern = ".BAM$",ignore.case = TRUE)
 path.BAM.files <- file.path(dirPath, BAM.files)
 # re-order groups based on BAM.files
 group_order<-NULL
@@ -145,72 +145,76 @@ for (n in 1:length(BAM.files)){
 groups<-groups[group_order]
 # analyzing data
 fc<-Rsubread::featureCounts(path.BAM.files
-                  # annotation
-                  ,annot.inbuilt = ai # c("mm10","mm9","hg38","hg19")
-                  ,annot.ext = ae
-                  ,isGTFAnnotationFile = iG
-                  ,GTF.featureType = Gf
-                  ,GTF.attrType = GT
-                  ,GTF.attrType.extra = GTe
-                  ,chrAliases = cA
-                  # level of summarization
-                  ,useMetaFeatures = uMF
-                  # overlap between reads and features
-                  ,allowMultiOverlap = aMO
-                  ,minOverlap = mO
-                  ,fracOverlap = fO
-                  ,fracOverlapFeature = fOF
-                  ,largestOverlap = lO
-                  #,nonOverlap = nO
-                  #,nonOverlapFeature = nOF
-                  # Read shift, extension and reduction
-                  ,readShiftType = rST
-                  ,readShiftSize = rSS
-                  ,readExtension5 = rE5
-                  ,readExtension3 = rE3
-                  #,read2pos = r2p
-                  # multi-mapping reads
-                  ,countMultiMappingReads = MMR
-                  # fractional counting
-                  ,fraction = fr
-                  # long reads
-                  ,isLongRead = iL
-                  # read filtering
-                  ,minMQS = mM
-                  ,splitOnly = sO
-                  ,nonSplitOnly = nS
-                  ,primaryOnly = pO
-                  ,ignoreDup = iD
-                  # strandness
-                  ,strandSpecific = sS
-                  # exon-exon junctions
-                  ,juncCounts = jC
-                  ,genome = g
-                  # parameters specific to paired end reads
-                  ,isPairedEnd = iPE
-                  ,requireBothEndsMapped = BEM
-                  ,checkFragLength = cFL
-                  ,minFragLength = miF
-                  ,maxFragLength = maF
-                  ,countChimericFragments = cCF
-                  ,autosort = a
-                  # number of CPU threads
-                  ,nthreads = nt
-                  # read group
-                  ,byReadGroup = bRG
-                  # report assignment result for each read
-                  ,reportReads = rR #c(CORE, SAM and BAM)
-                  ,reportReadsPath = rRP
-                  # miscellaneous
-                  ,sampleSheet = s
-                  ,cellBarcodeList = cBL
-                  ,maxMOp = mM
-                  ,tmpDir = tD
-                  ,verbose = v
-                  )
+                            # annotation
+                            ,annot.inbuilt = ai # c("mm10","mm9","hg38","hg19")
+                            ,annot.ext = ae
+                            ,isGTFAnnotationFile = iG
+                            ,GTF.featureType = Gf
+                            ,GTF.attrType = GT
+                            ,GTF.attrType.extra = GTe
+                            ,chrAliases = cA
+                            # level of summarization
+                            ,useMetaFeatures = uMF
+                            # overlap between reads and features
+                            ,allowMultiOverlap = aMO
+                            ,minOverlap = mO
+                            ,fracOverlap = fO
+                            ,fracOverlapFeature = fOF
+                            ,largestOverlap = lO
+                            #,nonOverlap = nO
+                            #,nonOverlapFeature = nOF
+                            # Read shift, extension and reduction
+                            ,readShiftType = rST
+                            ,readShiftSize = rSS
+                            ,readExtension5 = rE5
+                            ,readExtension3 = rE3
+                            #,read2pos = r2p
+                            # multi-mapping reads
+                            ,countMultiMappingReads = MMR
+                            # fractional counting
+                            ,fraction = fr
+                            # long reads
+                            ,isLongRead = iL
+                            # read filtering
+                            ,minMQS = mM
+                            ,splitOnly = sO
+                            ,nonSplitOnly = nS
+                            ,primaryOnly = pO
+                            ,ignoreDup = iD
+                            # strandness
+                            ,strandSpecific = sS
+                            # exon-exon junctions
+                            ,juncCounts = jC
+                            ,genome = g
+                            # parameters specific to paired end reads
+                            ,isPairedEnd = iPE
+                            ,requireBothEndsMapped = BEM
+                            ,checkFragLength = cFL
+                            ,minFragLength = miF
+                            ,maxFragLength = maF
+                            ,countChimericFragments = cCF
+                            ,autosort = a
+                            # number of CPU threads
+                            ,nthreads = nt
+                            # read group
+                            ,byReadGroup = bRG
+                            # report assignment result for each read
+                            ,reportReads = rR #c(CORE, SAM and BAM)
+                            ,reportReadsPath = rRP
+                            # miscellaneous
+                            ,sampleSheet = s
+                            ,cellBarcodeList = cBL
+                            ,maxMOp = mM
+                            ,tmpDir = tD
+                            ,verbose = v
+)
 # Create a DGEList object from fc
 y<-edgeR::DGEList(counts = fc$counts[,1:length(path.BAM.files)],genes = fc$annotation[,c("GeneID","Length")], group = groups)
 # export data
 require(xlsx)
+cat('Creating "counts.txt"...')
 write.table(y$counts, file="counts.txt", row.names = TRUE, col.names = TRUE, sep = "\t" )
+cat('Done!\n')
+cat('Creating "genes.txt"...')
 write.table(y$genes, file="genes.txt", row.names = TRUE, col.names = TRUE, sep = "\t" )
+cat('Done!\n')

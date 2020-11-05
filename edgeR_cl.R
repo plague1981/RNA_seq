@@ -23,7 +23,6 @@ parser$add_argument('--help',type='logical',action='store_true',help='Print the 
 parser$add_argument('--dir', type = 'character', default = getwd(), help = '"directory",Enter your working directory')
 parser$helpme()
 # === variables ====
-dir<-'C:/Users/Changyi.Lin/Desktop/Vincent/merged'
 dirPath <- dir
 dirPath <-gsub ('\\\\','/',dirPath)
 if (dir.exists(dirPath)){

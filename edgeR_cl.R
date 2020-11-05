@@ -194,6 +194,10 @@ repeat{
     cat("Please enter yes or no [y/n]!")
   }
 }
+if ((overall_answer=="n"|overall_answer=="no")&&(compare_inp=="n"|compare_inp=="no")){
+  cat('No files were created!...')
+  quit()
+}
 # ==========================================================
 # Processing data if you don't have counts.txt and genes.txt 
 
@@ -311,7 +315,7 @@ if (overall_answer=="y"|overall_answer=="yes"){
   
 } else if (overall_answer=="n"|overall_answer=="no"){
   cat("No Overall file was created!\n")
-}
+} 
 
 # ======== Two groups Differential expression =========
 # Select two groups for comparison

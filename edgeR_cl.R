@@ -309,7 +309,7 @@ if (overall_answer=="y"|overall_answer=="yes"){
   cat('Done!\n')
   
 } else if (overall_answer=="n"|overall_answer=="no"){
-  cat("No files was created!\n")
+  cat("No overall file was created!\n")
 }
 
 # ======== Two groups Differential expression =========

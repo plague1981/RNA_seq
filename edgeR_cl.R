@@ -1,7 +1,7 @@
 # ======== Packages required =========
 options(java.parameters = c("-XX:+UseConcMarkSweepGC", "-Xmx16384m"))
 # Rcran
-packages<-c('Xmisc','readxl','xlsx','statmod')
+packages<-c('Xmisc','readxl','xlsx','statmod','stringr')
 for (package in packages){
   if(package %in% rownames(installed.packages()) == FALSE) {
     install.packages(package)}
@@ -23,6 +23,7 @@ parser$add_argument('--help',type='logical',action='store_true',help='Print the 
 parser$add_argument('--dir', type = 'character', default = getwd(), help = '"directory",Enter your working directory')
 parser$helpme()
 # === variables ====
+#dir<-'C:/Users/Changyi.Lin/Desktop/Vincent/merged'
 dirPath <- dir
 dirPath <-gsub ('\\\\','/',dirPath)
 if (dir.exists(dirPath)){
@@ -37,7 +38,7 @@ if (dir.exists(dirPath)){
 cat("Importing files needed (eg. groups.xlsx/groups.txt, counts.txt and genes.txt)\n")
 
 if ((file.exists("groups.xlsx")|file.exists("groups.txt"))&& file.exists('counts.txt') && file.exists('genes.txt')){
-  require(readxl)
+  suppressPackageStartupMessages(require(readxl))
   cat("All files were found!\n")
   groups <- factor(unlist(read_excel("groups.xlsx",range=cell_cols("B"))))
   groups_name <- unlist(read_excel("groups.xlsx",range=cell_cols("A")))
@@ -105,7 +106,7 @@ repeat{
   cat('4. E. coli strain K12\n')
   species_inp <- readLines("stdin", n = 1L)
   if(as.numeric(species_inp) %in% c(1:4)){
-    library(stringr)
+    suppressPackageStartupMessages(require(stringr))
     pattern <- "org\\.\\s*(.*?)\\s*\\.eg\\.db"
     sample_species<- regmatches(Symbol.packages[1], regexec(pattern, Symbol.packages[1]))[[1]][2]
     break()
@@ -115,16 +116,16 @@ repeat{
 if(Symbol.packages[as.numeric(species_inp)] %in% rownames(installed.packages()) == FALSE) {
   BiocManager::install(Symbol.packages[as.numeric(species_inp)])}
 if (species_inp==1){
-  require(org.Hs.eg.db)
+  suppressPackageStartupMessages(require(org.Hs.eg.db))
   database<-org.Hs.eg.db
 } else if (species_inp==2){
-  require(org.Mm.eg.db)
+  suppressPackageStartupMessages(require(org.Mm.eg.db))
   database<-org.Mm.eg.db
 } else if (species_inp==3){
-  require(org.Rn.eg.db)
+  suppressPackageStartupMessages(require(org.Rn.eg.db))
   database<-org.Rn.eg.db
 } else if (species_inp==4){
-  require(org.EcK12.eg.db)
+  suppressPackageStartupMessages(require(org.EcK12.eg.db))
   database<-org.EcK12.eg.db  
 }
 cat(paste("you entered", s_species[species_inp], 'as the species\n'))
@@ -198,7 +199,7 @@ repeat{
 
 cat("Analyzing data from counts.txt and genes.txt\n")
 # Create a DGEList object from counts.txt and genes.txt
-require(edgeR)
+suppressPackageStartupMessages(require(edgeR))
 y <- DGEList(counts = raw.data.counts, genes = data.frame(raw.data.genes), group = groups)
 table(rowSums(y$counts==0)==12)
 # remove worthless genes
@@ -245,7 +246,7 @@ if (1 %in% n_occur[,"Freq"]){
     # = quantile-adjusted conditional maximum likelihood (qCML)
     # = qCML method is only applicable on datasets with "a single factor" design
     # = This method proves to be accurate and nearly unbiased even for small counts and small numbers of replicates
-    require(statmod)
+    suppressPackageStartupMessages(require(statmod))
     y <- estimateDisp(y, robust=TRUE)
     # ===== Alternatives below to get y$pseudo.counts,
     #y <- estimateCommonDisp(y)
@@ -300,7 +301,7 @@ if (overall_answer=="y"|overall_answer=="yes"){
   sample.names.cpm<-colnames(cpm(y))
   colnames(total.rpkm.table)<-c(sample.names.rpkm,colnames(out[,3:ncol(out)]))
   colnames(total.cpm.table)<-c(sample.names.cpm,colnames(out[,3:ncol(out)]))
-  require(xlsx)
+  suppressPackageStartupMessages(require(xlsx))
   cat('Creating "total.genes.rpkm.table.xlsx"...')
   write.xlsx(total.rpkm.table, "total.genes.rpkm.table.xlsx")
   cat("Done!\n")
@@ -309,7 +310,7 @@ if (overall_answer=="y"|overall_answer=="yes"){
   cat('Done!\n')
   
 } else if (overall_answer=="n"|overall_answer=="no"){
-  cat("No overall file was created!\n")
+  cat("No Overall file was created!\n")
 }
 
 # ======== Two groups Differential expression =========
@@ -322,6 +323,7 @@ if (compare_inp=="y"|compare_inp=="yes"){
   } else {
     # Genewise Negative Binomial Generalized Linear Model with Quasi-likelihood
     fit <- glmQLFit(y, design = design) #"DGEGLM"
+    #con<-c(-1,0,0,1)
     test.result <- glmQLFTest(fit, contrast = con) # "DGELRT"
     ##Alternative method, Genewise Negative Binomial Generalized Linear Model
     ##Fit a negative binomial generalized log-linear model to the read counts for each gene
@@ -351,7 +353,7 @@ if (compare_inp=="y"|compare_inp=="yes"){
   cpm.table<-cpm.table[,c("GeneID","Length",sample.names,"logFC","logCPM","PValue","FDR")]
 
   # Export the results as an xlsx file.
-  require(xlsx)
+  suppressPackageStartupMessages(require(xlsx))
   cat(paste0('Creating ',group_1,group_2,"_genes.rpkm.table.xlsx..."))
   write.xlsx(rpkm.table, paste0(group_1,group_2,"_genes.rpkm.table.xlsx"))
   cat('Done!\n')
@@ -359,7 +361,7 @@ if (compare_inp=="y"|compare_inp=="yes"){
   write.xlsx(cpm.table, paste0(group_1,group_2,"_genes.cpkm.table.xlsx"))
   cat('Done!')
   # Intepret the differential expression results
-  pdf(file="LogFCvsPValue.pdf")
+  pdf(file="LogFCvsPvalue.pdf")
   plot(out[,"logFC"],-log2(out[,"PValue"]))
   dev.off()
 }

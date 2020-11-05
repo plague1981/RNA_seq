@@ -263,22 +263,22 @@ if (1 %in% n_occur[,"Freq"]){
 # ADD Symbols
 
 if (convert_inp=="y"|convert_inp=="yes"){
-    # NCBI reference
-    if (suppressWarnings(!is.na(as.numeric(row.names(y)[1])))){
-      Symbol<- mapIds(database,keys=rownames(y), keytype=db_keytype, column="SYMBOL")
-      gene_id_names <- data.frame(Symbol=Symbol)
+  # NCBI reference
+  if (suppressWarnings(!is.na(as.numeric(row.names(y)[1])))){
+    Symbol<- mapIds(database,keys=rownames(y), keytype=db_keytype, column="SYMBOL")
+    gene_id_names <- data.frame(Symbol=Symbol)
     # Convert GeneID to Symbols
-      gene_names<-NULL
-      for (gene_id in as.character(row.names(y))) {
-        if (is.na(gene_id_names[gene_id,"Symbol"])) {
-         gene_names<-c(gene_names, gene_id)
-       } else {
-         gene_name<-as.character(gene_id_names[gene_id,"Symbol"])
-         gene_names<-c(gene_names, gene_name)
-       }
+    gene_names<-NULL
+    for (gene_id in as.character(row.names(y))) {
+      if (is.na(gene_id_names[gene_id,"Symbol"])) {
+        gene_names<-c(gene_names, gene_id)
+      } else {
+        gene_name<-as.character(gene_id_names[gene_id,"Symbol"])
+        gene_names<-c(gene_names, gene_name)
       }
-    row.names(y)<-gene_names
     }
+    row.names(y)<-gene_names
+  }
 }
 
 # ======= Overall Differential expression analysis ======
@@ -316,7 +316,7 @@ if (overall_answer=="y"|overall_answer=="yes"){
 # Select two groups for comparison
 if (compare_inp=="y"|compare_inp=="yes"){
   if (factor_answer=="y"|factor_answer=="yes"){
-  # the exact test is only applicable to experiments witha single factor
+    # the exact test is only applicable to experiments witha single factor
     test.result <- exactTest(y, pair = c(group_1,group_2) )
   } else {
     # Genewise Negative Binomial Generalized Linear Model with Quasi-likelihood
@@ -334,7 +334,7 @@ if (compare_inp=="y"|compare_inp=="yes"){
   sample.names.group_1<-row.names(y$samples[y$samples[,"group"]==group_1,])
   sample.names.group_2<-row.names(y$samples[y$samples[,"group"]==group_2,])
   sample.names<-c(sample.names.group_1,sample.names.group_2)
-
+  
   # Get the rpkm and cpm of samples in two groups
   rpkm.table<-rpkm(y)[,sample.names]
   cpm.table<-cpm(y)[,sample.names]
@@ -348,23 +348,15 @@ if (compare_inp=="y"|compare_inp=="yes"){
   colnames(cpm.table)<-c(sample.names,out.col)
   rpkm.table<-rpkm.table[,c("GeneID","Length",sample.names,"logFC","logCPM","PValue","FDR")]
   cpm.table<-cpm.table[,c("GeneID","Length",sample.names,"logFC","logCPM","PValue","FDR")]
-
+  
   # Export the results as an xlsx file.
+  require(xlsx)
   write.xlsx(rpkm.table, paste0(group_1,group_2,"_genes.rpkm.table.xlsx"))
-  write.xlsx(cpm.table, paste0(group_1,group_2,"_genes.cpkm.table.xlsx"))
+  write.xlsx(cpm.table, paste0(group_1,group_2,"_genes.cpm.table.xlsx"))
   # Intepret the differential expression results
   # The gene ontology (GO) enrichment analysis and the KEGG pathway enrichment analysis
   require(limma)
-  require(topGO)
-  
-  #row.names(test.result)<-y$genes[,"GeneID"]
-  #go <- goana(test.result, species=species,universe = annot)
-  #top_GO<-topGO(go, sort="up")
-  #keg <- kegga(test.result, species=species)
-  #topKEGG(keg, sort="up")
-
   # Export the results as an xlsx file.
-  #write.xlsx(top_GO, paste0(group_1,group_2,"_GO.xlsx"))
   # Export the "LogFCvsFDR.pdf" plot
   pdf(file="LogFCvsFDR.pdf")
   plot(out[,"logFC"],-log2(out[,"FDR"]))

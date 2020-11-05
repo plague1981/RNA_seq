@@ -9,7 +9,7 @@ for (package in packages){
 # Bioconductor
 if (!requireNamespace("BiocManager", quietly = TRUE))
   install.packages("BiocManager")
-bio.packages<-c('Rsubread','edgeR',"org.Hs.eg.db","org.Mm.eg.db","topGO")
+bio.packages<-c('Rsubread','edgeR',"topGO")
 for (bio.package in bio.packages){
   if(bio.package %in% rownames(installed.packages()) == FALSE) {
     BiocManager::install(bio.package)}
@@ -23,7 +23,7 @@ parser$add_argument('--help',type='logical',action='store_true',help='Print the 
 parser$add_argument('--dir', type = 'character', default = getwd(), help = '"directory",Enter your working directory')
 parser$helpme()
 # === variables ====
-#dir<-'C:\Users\Changyi.Lin\Desktop\Vincent\merged'
+dir<-'C:/Users/Changyi.Lin/Desktop/Vincent/merged'
 dirPath <- dir
 dirPath <-gsub ('\\\\','/',dirPath)
 if (dir.exists(dirPath)){
@@ -106,6 +106,9 @@ repeat{
   cat('4. E. coli strain K12\n')
   species_inp <- readLines("stdin", n = 1L)
   if(as.numeric(species_inp) %in% c(1:4)){
+    library(stringr)
+    pattern <- "org\\.\\s*(.*?)\\s*\\.eg\\.db"
+    sample_species<- regmatches(Symbol.packages[1], regexec(pattern, Symbol.packages[1]))[[1]][2]
     break()
   } else {cat("Please enter the number![1-4]\n")}
 }
@@ -258,27 +261,26 @@ if (1 %in% n_occur[,"Freq"]){
     #y <- estimateGLMTagwiseDisp(y, design)
   } 
 }
-
 # Add gene symbols and length if needed
 # ADD Symbols
 
 if (convert_inp=="y"|convert_inp=="yes"){
-  # NCBI reference
-  if (suppressWarnings(!is.na(as.numeric(row.names(y)[1])))){
-    Symbol<- mapIds(database,keys=rownames(y), keytype=db_keytype, column="SYMBOL")
-    gene_id_names <- data.frame(Symbol=Symbol)
+    # NCBI reference
+    if (suppressWarnings(!is.na(as.numeric(row.names(y)[1])))){
+      Symbol<- mapIds(database,keys=rownames(y), keytype=db_keytype, column="SYMBOL")
+      gene_id_names <- data.frame(Symbol=Symbol)
     # Convert GeneID to Symbols
-    gene_names<-NULL
-    for (gene_id in as.character(row.names(y))) {
-      if (is.na(gene_id_names[gene_id,"Symbol"])) {
-        gene_names<-c(gene_names, gene_id)
-      } else {
-        gene_name<-as.character(gene_id_names[gene_id,"Symbol"])
-        gene_names<-c(gene_names, gene_name)
+      gene_names<-NULL
+      for (gene_id in as.character(row.names(y))) {
+        if (is.na(gene_id_names[gene_id,"Symbol"])) {
+         gene_names<-c(gene_names, gene_id)
+       } else {
+         gene_name<-as.character(gene_id_names[gene_id,"Symbol"])
+         gene_names<-c(gene_names, gene_name)
+       }
       }
-    }
     row.names(y)<-gene_names
-  }
+    }
 }
 
 # ======= Overall Differential expression analysis ======
@@ -297,7 +299,6 @@ if (overall_answer=="y"|overall_answer=="yes"){
   
   sample.names.rpkm<-colnames(rpkm(y))
   sample.names.cpm<-colnames(cpm(y))
-  colnames(out[,3:ncol(out)])
   colnames(total.rpkm.table)<-c(sample.names.rpkm,colnames(out[,3:ncol(out)]))
   colnames(total.cpm.table)<-c(sample.names.cpm,colnames(out[,3:ncol(out)]))
   require(xlsx)
@@ -314,9 +315,10 @@ if (overall_answer=="y"|overall_answer=="yes"){
 
 # ======== Two groups Differential expression =========
 # Select two groups for comparison
+
 if (compare_inp=="y"|compare_inp=="yes"){
   if (factor_answer=="y"|factor_answer=="yes"){
-    # the exact test is only applicable to experiments witha single factor
+  # the exact test is only applicable to experiments with a single factor
     test.result <- exactTest(y, pair = c(group_1,group_2) )
   } else {
     # Genewise Negative Binomial Generalized Linear Model with Quasi-likelihood
@@ -334,7 +336,7 @@ if (compare_inp=="y"|compare_inp=="yes"){
   sample.names.group_1<-row.names(y$samples[y$samples[,"group"]==group_1,])
   sample.names.group_2<-row.names(y$samples[y$samples[,"group"]==group_2,])
   sample.names<-c(sample.names.group_1,sample.names.group_2)
-  
+
   # Get the rpkm and cpm of samples in two groups
   rpkm.table<-rpkm(y)[,sample.names]
   cpm.table<-cpm(y)[,sample.names]
@@ -348,17 +350,17 @@ if (compare_inp=="y"|compare_inp=="yes"){
   colnames(cpm.table)<-c(sample.names,out.col)
   rpkm.table<-rpkm.table[,c("GeneID","Length",sample.names,"logFC","logCPM","PValue","FDR")]
   cpm.table<-cpm.table[,c("GeneID","Length",sample.names,"logFC","logCPM","PValue","FDR")]
-  
+
   # Export the results as an xlsx file.
   require(xlsx)
+  cat(paste0('Creating ',group_1,group_2,"_genes.rpkm.table.xlsx..."))
   write.xlsx(rpkm.table, paste0(group_1,group_2,"_genes.rpkm.table.xlsx"))
-  write.xlsx(cpm.table, paste0(group_1,group_2,"_genes.cpm.table.xlsx"))
+  cat('Done!\n')
+  cat(paste0('Creating ',group_1,group_2,"_genes.cpm.table.xlsx..."))
+  write.xlsx(cpm.table, paste0(group_1,group_2,"_genes.cpkm.table.xlsx"))
+  cat('Done!')
   # Intepret the differential expression results
-  # The gene ontology (GO) enrichment analysis and the KEGG pathway enrichment analysis
-  require(limma)
-  # Export the results as an xlsx file.
-  # Export the "LogFCvsFDR.pdf" plot
-  pdf(file="LogFCvsFDR.pdf")
-  plot(out[,"logFC"],-log2(out[,"FDR"]))
+  pdf(file="LogFCvsPValue.pdf")
+  plot(out[,"logFC"],-log2(out[,"PValue"]))
   dev.off()
 }

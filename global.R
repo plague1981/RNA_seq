@@ -119,49 +119,52 @@ read_group<-function(input){
   return(file2table)
 }
 # statistics
-if (1 %in% n_occur()[,"Freq"]){
-  require(edgeR)
-  cat("One or more groups have No Duplicates\n")
-  y()<-estimateGLMCommonDisp(y(), method = "deviance", robust=TRUE, subset = NULL)
-  # ====== There are three options if no replicates ============
-  # Option 1: asign a dispersion
-  # well-controlled experiments are 0.4 for human data, 0.1 for data on genetically identical model organisms or 0.01 for technical replicates
-  # Assign Biological coefficient of variation, which is the square root of the dispersion parameter under the negative binomial mode
-  #bcv <- 0.4
-  #et <- exactTest(y, dispersion=bcv^2, pair = c("C","A"))
-  # Option 2: use estimateGLMCommonDisp()
-  #y<-estimateGLMCommonDisp(y, method = "deviance", robust=TRUE, subset = NULL)
-  # Option 3: use housekeeping gene(s)
-  # Assign which gene is houskeeping gene which is not affected by treatment
-  #housekeeping<-"ACTB"
-  # create a copy of the data object with only one treatment group
-  #y1<-y
-  # Assign all samples as a group in new dataset
-  #y1$samples$group <- 1
-  # Get the Dispersion from new dataset
-  #y0 <- estimateDisp(y1[housekeeping,], trend="none", tagwise=FALSE)
-  # Assign the dispersion to the original dataset
-  #y$common.dispersion <- y0$common.dispersion
-
-} else {
-  if (length(levels(group_factors()))==2){
-    # ====== Pairwise comparisons between two or more groups (classic)
-    # = quantile-adjusted conditional maximum likelihood (qCML)
-    # = qCML method is only applicable on datasets with "a single factor" design
-    # = This method proves to be accurate and nearly unbiased even for small counts and small numbers of replicates
-    suppressPackageStartupMessages(require(statmod))
-    y() <- estimateDisp(y(), robust=TRUE)
-    # ===== Alternatives below to get y$pseudo.counts,
-    #y <- estimateCommonDisp(y)
-    #y <- estimateTagwiseDisp(y)
-    #row.names(y$pseudo.counts)<-gene_names
+y_estimate<-function(y){
+  if (1 %in% n_occur()[,"Freq"]){
+    require(edgeR)
+    cat("One or more groups have No Duplicates\n")
+    y_estimate<-estimateGLMCommonDisp(y, method = "deviance", robust=TRUE, subset = NULL)
+    # ====== There are three options if no replicates ============
+    # Option 1: asign a dispersion
+    # well-controlled experiments are 0.4 for human data, 0.1 for data on genetically identical model organisms or 0.01 for technical replicates
+    # Assign Biological coefficient of variation, which is the square root of the dispersion parameter under the negative binomial mode
+    #bcv <- 0.4
+    #et <- exactTest(y, dispersion=bcv^2, pair = c("C","A"))
+    # Option 2: use estimateGLMCommonDisp()
+    #y<-estimateGLMCommonDisp(y, method = "deviance", robust=TRUE, subset = NULL)
+    # Option 3: use housekeeping gene(s)
+    # Assign which gene is houskeeping gene which is not affected by treatment
+    #housekeeping<-"ACTB"
+    # create a copy of the data object with only one treatment group
+    #y1<-y
+    # Assign all samples as a group in new dataset
+    #y1$samples$group <- 1
+    # Get the Dispersion from new dataset
+    #y0 <- estimateDisp(y1[housekeeping,], trend="none", tagwise=FALSE)
+    # Assign the dispersion to the original dataset
+    #y$common.dispersion <- y0$common.dispersion
+    
   } else {
-    # ====== For More complex experiments (glm functionality)
-    y() <- estimateDisp(y(), design = design(), robust=TRUE)
-    # ===== Alternatives below to get y$pseudo.counts,
-    #y <- estimateGLMCommonDisp(y, design)
-    #y <- estimateGLMTrendedDisp(y, design)
-    #y <- estimateGLMTagwiseDisp(y, design)
-  } 
+    if (length(levels(group_factors()))==2){
+      # ====== Pairwise comparisons between two or more groups (classic)
+      # = quantile-adjusted conditional maximum likelihood (qCML)
+      # = qCML method is only applicable on datasets with "a single factor" design
+      # = This method proves to be accurate and nearly unbiased even for small counts and small numbers of replicates
+      suppressPackageStartupMessages(require(statmod))
+      y_estimate <- estimateDisp(y, robust=TRUE)
+      # ===== Alternatives below to get y$pseudo.counts,
+      #y <- estimateCommonDisp(y)
+      #y <- estimateTagwiseDisp(y)
+      #row.names(y$pseudo.counts)<-gene_names
+    } else {
+      # ====== For More complex experiments (glm functionality)
+      y_estimate <- estimateDisp(y, design = design(), robust=TRUE)
+      # ===== Alternatives below to get y$pseudo.counts,
+      #y <- estimateGLMCommonDisp(y, design)
+      #y <- estimateGLMTrendedDisp(y, design)
+      #y <- estimateGLMTagwiseDisp(y, design)
+    } 
+  }
+  return(y_estimate)
 }
 

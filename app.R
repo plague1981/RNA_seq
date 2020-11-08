@@ -1,7 +1,7 @@
 # ======== Packages required =========
 options(java.parameters = c("-XX:+UseConcMarkSweepGC", "-Xmx16384m"))
 # Rcran
-packages<-c('shiny','shinythemes','shinydashboard','shinycssloaders','plyr','dplyr','gridExtra','plotly','rapportools')
+packages<-c('shiny','shinythemes','shinydashboard','shinycssloaders','plyr','dplyr','gridExtra','plotly','rapportools',"calibrate",'gplots')
 for (package in packages){
   if(package %in% rownames(installed.packages()) == FALSE) {
     install.packages(package)}

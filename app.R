@@ -1,11 +1,12 @@
+# $sudo apt-get install r-cran-rjava (for rJava package)
 # ======== Packages required =========
 options(java.parameters = c("-XX:+UseConcMarkSweepGC", "-Xmx16384m"))
 # Rcran
-packages<-c('shiny','shinythemes','shinydashboard','shinycssloaders','plyr','dplyr','gridExtra','plotly','rapportools',"calibrate",'gplots')
-for (package in packages){
-  if(package %in% rownames(installed.packages()) == FALSE) {
-    install.packages(package)}
-}
+  packages<-c('shiny','shinythemes','shinydashboard','shinycssloaders','plyr','dplyr','gridExtra','plotly','rapportools',"calibrate",'gplots','rJava','xlsx','readxl')
+  for (package in packages){
+    if(package %in% rownames(installed.packages()) == FALSE) {
+      install.packages(package)}
+  }
 # Bioconductor
 if (!requireNamespace("BiocManager", quietly = TRUE))
   install.packages("BiocManager")
@@ -18,7 +19,6 @@ library(shiny)
 library(shinythemes)
 library(shinydashboard)
 library(shinycssloaders)
-library(shinyFiles)
 library(plyr)
 library(dplyr)
 library(cummeRbund)
@@ -27,7 +27,6 @@ library(plotly)
 library(DESeq2)
 library(rapportools)
 
-memory.limit(1610241024*1024)
 gc()
 ui<- dashboardPage(
   dashboardHeader(title = 'NGS data analysis'),
@@ -169,7 +168,9 @@ ui<- dashboardPage(
                          ),
                          tabPanel('Statistics', icon = icon('calendar-plus'),
                                   shiny::tags$p('lib size calibration'),
-                                  tableOutput('y_norm_factor')
+                                  tableOutput('y_norm_factor'),
+                                  tableOutput('total.cpm.table'),
+                                  tableOutput('total.rpkm.table')
                          )
               ) #navbarPage: edgeR
       ) # tabItem:edgeR
@@ -571,6 +572,15 @@ server <- function(input, output, session){
   n_occur <- reactive({
     data.frame(table(group_factors()))
   })
+  y_estimate<-reactive({
+      return(y_estimate(y()))
+  })
+  total.cpm.table<-reactive({
+      return(total.cpm.table())
+  })
+  total.rpkm.table<-reactive({
+      return(total.rpkm.table())
+  })
   
   # Output
   output$groups_table<-renderTable({
@@ -580,13 +590,13 @@ server <- function(input, output, session){
     if (is.null(readcounts())){
       return(NULL)
     } else
-    head(readcounts())
+      head(readcounts())
   })
   output$genes_table<-renderTable(rownames = TRUE,{
     if (is.null(readgenes())){
       return(NULL)
     } else
-    head(readgenes())
+      head(readgenes())
   })
   output$y_norm_factor<-renderTable(rownames = TRUE,{
     if (is.null(y())){
@@ -594,8 +604,17 @@ server <- function(input, output, session){
     } else
       y()$sample
   })
+  output$total.cpm.table<-renderTable(rownames = TRUE,{
+    if (is.null(y())){
+      return(NULL)
+    } else
+      head(total.cpm.table())
+  })
+  output$total.rpkm.table<-renderTable(rownames = TRUE,{
+    if (is.null(y())){
+      return(NULL)
+    } else
+      head(total.rpkm.table())
+  })
 }
-
-
-
 shinyApp(ui, server)

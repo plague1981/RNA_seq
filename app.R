@@ -2,11 +2,11 @@
 # ======== Packages required =========
 options(java.parameters = c("-XX:+UseConcMarkSweepGC", "-Xmx16384m"))
 # Rcran
-  packages<-c('shiny','shinythemes','shinydashboard','shinycssloaders','plyr','dplyr','gridExtra','plotly','rapportools',"calibrate",'gplots','rJava','xlsx','readxl')
-  for (package in packages){
-    if(package %in% rownames(installed.packages()) == FALSE) {
-      install.packages(package)}
-  }
+packages<-c('shiny','shinythemes','shinydashboard','shinycssloaders','plyr','dplyr','gridExtra','plotly','rapportools',"calibrate",'gplots','rJava','xlsx','readxl')
+for (package in packages){
+  if(package %in% rownames(installed.packages()) == FALSE) {
+    install.packages(package)}
+}
 # Bioconductor
 if (!requireNamespace("BiocManager", quietly = TRUE))
   install.packages("BiocManager")
@@ -159,18 +159,23 @@ ui<- dashboardPage(
                                   fileInput(inputId = 'groups_file',label = 'Please select your groups file(eg. groups.xlsx or .txt)',multiple = FALSE),
                                   actionButton(inputId = 'upload_files',label = 'Upload'),
                                   shiny::tags$p('Groups info'),
-                                  tableOutput('groups_table'),
+                                  tableOutput('groups_table') %>% withSpinner(color="#0dc5c1"),
                                   shiny::tags$p('Counts table preview'),
-                                  tableOutput('counts_table'),
+                                  tableOutput('counts_table') %>% withSpinner(color="#0dc5c1"),
                                   shiny::tags$p('Genes table preview'),
-                                  tableOutput('genes_table'),
+                                  tableOutput('genes_table') %>% withSpinner(color="#0dc5c1")
                                   
                          ),
-                         tabPanel('Statistics', icon = icon('calendar-plus'),
+                         tabPanel('Cpm/Fpkm table', icon = icon('calendar-plus'),
                                   shiny::tags$p('lib size calibration'),
-                                  tableOutput('y_norm_factor'),
-                                  tableOutput('total.cpm.table'),
-                                  tableOutput('total.rpkm.table')
+                                  tableOutput('y_norm_factor') %>% withSpinner(color="#0dc5c1"),
+                                  actionButton(inputId = 'get_cpm_table',label = 'cpm table'),
+                                  tableOutput('cpm.table') %>% withSpinner(color="#0dc5c1"),
+                                  actionButton(inputId = 'get_rpkm_table',label = 'rpkm table'),
+                                  tableOutput('rpkm.table') %>% withSpinner(color="#0dc5c1"),
+                                  actionButton(inputId = 'get_out_table',label = 'statistic table'),
+                                  tableOutput('out_table') %>% withSpinner(color="#0dc5c1"),
+                                  downloadLink("download", "Download")
                          )
               ) #navbarPage: edgeR
       ) # tabItem:edgeR
@@ -572,14 +577,23 @@ server <- function(input, output, session){
   n_occur <- reactive({
     data.frame(table(group_factors()))
   })
-  y_estimate<-reactive({
-      return(y_estimate(y()))
+  y_estimate_result<-reactive({
+    return(y_estimate(y()))
   })
-  total.cpm.table<-reactive({
-      return(total.cpm.table())
+  out<-eventReactive(input$get_out_table,{
+    fit <- glmQLFit(y_estimate_result(), design = design(), robust = TRUE)
+    anova.like.result <- glmQLFTest(fit, coef=2:length(levels(group_factors())))
+    out <- topTags(anova.like.result, n = "Inf")$table
+    return(out)
   })
-  total.rpkm.table<-reactive({
-      return(total.rpkm.table())
+  cpm.table<-eventReactive(input$get_cpm_table,{
+    return(cpm(y_estimate_result()))
+  })
+  rpkm.table<-eventReactive(input$get_rpkm_table,{
+    return(rpkm(y_estimate_result()))
+  })
+  total.cpm.table<-eventReactive(input$get_total_cpm_table,{
+    return(total.table(cpm.table()))
   })
   
   # Output
@@ -604,17 +618,32 @@ server <- function(input, output, session){
     } else
       y()$sample
   })
-  output$total.cpm.table<-renderTable(rownames = TRUE,{
-    if (is.null(y())){
+  output$cpm.table<-renderTable(rownames = TRUE,digits = 6,{
+    if (is.null(cpm.table())){
       return(NULL)
     } else
-      head(total.cpm.table())
+      head(cpm.table())
   })
-  output$total.rpkm.table<-renderTable(rownames = TRUE,{
-    if (is.null(y())){
+  output$rpkm.table<-renderTable(rownames = TRUE,digits = 6,{
+    if (is.null(rpkm.table())){
       return(NULL)
     } else
-      head(total.rpkm.table())
+      head(rpkm.table())
   })
+  output$out_table<-renderTable(rownames = TRUE,digits = 6,{
+    if (is.null(out())){
+      return(NULL)
+    } else
+      head(out())
+  })
+  output$download <- downloadHandler(
+    filename =  "result_tables.xlsx"
+    ,
+    content = function(file) {
+      require(xlsx)
+      write.xlsx(cpm.table(), sheetName = 'cpm',file)
+      write.xlsx(rpkm.table(), sheetName = 'rpkm',file, append = TRUE)
+      write.xlsx(out(), sheetName = 'out',file, append = TRUE)
+    })
 }
 shinyApp(ui, server)

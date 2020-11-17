@@ -168,29 +168,5 @@ y_estimate<-function(y){
   }
   return(y_estimate)
 }
-total.cpm.table<-function(){
-  require(edgeR)
-  fit <- glmQLFit(y_estimate(), design = design(), robust = TRUE)
-  anova.like.result <- glmQLFTest(fit, coef=2:length(levels(group_factors())))
-  out <- topTags(anova.like.result, n = "Inf")$table
-  total.cpm.table<-cpm(y_estimate())
-  for (n in 3:ncol(out)){
-    total.cpm.table<-cbind(total.cpm.table, out[,n][match(rownames(total.cpm.table), rownames(out))])
-  }
-  sample.names.cpm<-colnames(cpm(y_estimate()))
-  colnames(total.cpm.table)<-c(sample.names.cpm,colnames(out[,3:ncol(out)]))
-  return(total.cpm.table)
-}
-total.rpkm.table<-function(){
-  require(edgeR)
-  fit <- glmQLFit(y_estimate(), design = design(), robust = TRUE)
-  anova.like.result <- glmQLFTest(fit, coef=2:length(levels(group_factors())))
-  out <- topTags(anova.like.result, n = "Inf")$table
-  total.rpkm.table<-rpkm(y_estimate())
-  for (n in 3:ncol(out)){
-    total.rpkm.table<-cbind(total.rpkm.table, out[,n][match(rownames(total.rpkm.table), rownames(out))])
-  }
-  sample.names.rpkm<-colnames(rpkm(y_estimate()))
-  colnames(total.rpkm.table)<-c(sample.names.rpkm,colnames(out[,3:ncol(out)]))
-  return(total.rpkm.table)
-}
+
+

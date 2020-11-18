@@ -158,24 +158,28 @@ ui<- dashboardPage(
                                   fileInput(inputId = 'genes_file',label = 'Please select your genes file(eg. genes.txt)',multiple = FALSE),
                                   fileInput(inputId = 'groups_file',label = 'Please select your groups file(eg. groups.xlsx or .txt)',multiple = FALSE),
                                   actionButton(inputId = 'upload_files',label = 'Upload'),
-                                  shiny::tags$p('Groups info'),
-                                  tableOutput('groups_table') %>% withSpinner(color="#0dc5c1"),
+                                  #shiny::tags$p('Groups info'),
+                                  #tableOutput('groups_table') %>% withSpinner(color="#0dc5c1"),
                                   shiny::tags$p('Counts table preview'),
                                   tableOutput('counts_table') %>% withSpinner(color="#0dc5c1"),
                                   shiny::tags$p('Genes table preview'),
-                                  tableOutput('genes_table') %>% withSpinner(color="#0dc5c1")
-                                  
-                         ),
-                         tabPanel('Cpm/Fpkm table', icon = icon('calendar-plus'),
+                                  tableOutput('genes_table') %>% withSpinner(color="#0dc5c1"),
                                   shiny::tags$p('lib size calibration'),
                                   tableOutput('y_norm_factor') %>% withSpinner(color="#0dc5c1"),
+                                  downloadLink("sample_info.download", "Download")
+                         ),
+                         tabPanel(title = 'Overall analysis', icon = icon('calendar-plus'),
                                   actionButton(inputId = 'get_cpm_table',label = 'cpm table'),
                                   tableOutput('cpm.table') %>% withSpinner(color="#0dc5c1"),
                                   actionButton(inputId = 'get_rpkm_table',label = 'rpkm table'),
                                   tableOutput('rpkm.table') %>% withSpinner(color="#0dc5c1"),
                                   actionButton(inputId = 'get_out_table',label = 'statistic table'),
                                   tableOutput('out_table') %>% withSpinner(color="#0dc5c1"),
-                                  downloadLink("download", "Download")
+                                  downloadLink("overall.download", "Download")
+                         ),
+                         tabPanel(title = 'Two groups analysis', icon = icon('calendar-plus'),
+                                  uiOutput('ref_group_edgeR'),
+                                  uiOutput('contrast_group_edgeR')
                          )
               ) #navbarPage: edgeR
       ) # tabItem:edgeR
@@ -592,25 +596,26 @@ server <- function(input, output, session){
   rpkm.table<-eventReactive(input$get_rpkm_table,{
     return(rpkm(y_estimate_result()))
   })
-  total.cpm.table<-eventReactive(input$get_total_cpm_table,{
+  total.cpm.table<-eventReactive(input$get_total.cpm.table,{
     return(total.table(cpm.table()))
   })
   
+  
   # Output
-  output$groups_table<-renderTable({
-    readgroup()
-  })
+  #output$groups_table<-renderTable({
+  #  readgroup()
+  #})
   output$counts_table<-renderTable(rownames = TRUE,{
     if (is.null(readcounts())){
       return(NULL)
     } else
-      head(readcounts())
+      utils::head(readcounts())
   })
   output$genes_table<-renderTable(rownames = TRUE,{
     if (is.null(readgenes())){
       return(NULL)
     } else
-      head(readgenes())
+      utils::head(readgenes())
   })
   output$y_norm_factor<-renderTable(rownames = TRUE,{
     if (is.null(y())){
@@ -618,25 +623,32 @@ server <- function(input, output, session){
     } else
       y()$sample
   })
-  output$cpm.table<-renderTable(rownames = TRUE,digits = 6,{
+  output$sample_info.download <- downloadHandler(
+    filename =  "norm_factor.xlsx"
+    ,
+    content = function(file) {
+      require(xlsx)
+      write.xlsx(y()$sample, sheetName = 'norm_factor',file)
+    })
+  output$cpm.table<-renderTable(rownames = TRUE,digits = 6, spacing = 'xs',{
     if (is.null(cpm.table())){
       return(NULL)
     } else
-      head(cpm.table())
+      utils::head(cpm.table())
   })
-  output$rpkm.table<-renderTable(rownames = TRUE,digits = 6,{
+  output$rpkm.table<-renderTable(rownames = TRUE,digits = 6, spacing = 'xs',{
     if (is.null(rpkm.table())){
       return(NULL)
     } else
-      head(rpkm.table())
+      utils::head(rpkm.table())
   })
-  output$out_table<-renderTable(rownames = TRUE,digits = 6,{
+  output$out_table<-renderTable(rownames = TRUE,digits = 6, spacing = 'xs',{
     if (is.null(out())){
       return(NULL)
     } else
-      head(out())
+      utils::head(data.frame(out()))
   })
-  output$download <- downloadHandler(
+  output$overall.download <- downloadHandler(
     filename =  "result_tables.xlsx"
     ,
     content = function(file) {
@@ -645,5 +657,20 @@ server <- function(input, output, session){
       write.xlsx(rpkm.table(), sheetName = 'rpkm',file, append = TRUE)
       write.xlsx(out(), sheetName = 'out',file, append = TRUE)
     })
+  # two groups comparison
+  output$ref_group_edgeR<-renderUI({
+    if (is.null(group_factors())){
+      return(NULL) 
+    } else
+      group_choices<-levels(group_factors())
+    selectInput(inputId = 'ref_edgeR', label = 'Please select the reference group:', choices = group_choices,selected = group_choices[1])
+  })
+  output$contrast_group_edgeR<-renderUI({
+    if (is.null(group_factors())){
+      return(NULL) 
+    } else
+      group_choices<-levels(group_factors())
+    selectInput(inputId = 'contrast_edgeR', label = 'Please select the contrast group:',choices = group_choices,selected = group_choices[2])
+  })
 }
 shinyApp(ui, server)

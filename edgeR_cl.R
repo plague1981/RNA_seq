@@ -115,20 +115,20 @@ repeat{
 
 if(Symbol.packages[as.numeric(species_inp)] %in% rownames(installed.packages()) == FALSE) {
   BiocManager::install(Symbol.packages[as.numeric(species_inp)])}
-if (species_inp==1){
+if (as.numeric(species_inp)==1){
   suppressPackageStartupMessages(require(org.Hs.eg.db))
   database<-org.Hs.eg.db
-} else if (species_inp==2){
+} else if (as.numeric(species_inp)==2){
   suppressPackageStartupMessages(require(org.Mm.eg.db))
   database<-org.Mm.eg.db
-} else if (species_inp==3){
+} else if (as.numeric(species_inp)==3){
   suppressPackageStartupMessages(require(org.Rn.eg.db))
   database<-org.Rn.eg.db
-} else if (species_inp==4){
+} else if (as.numeric(species_inp)==4){
   suppressPackageStartupMessages(require(org.EcK12.eg.db))
   database<-org.EcK12.eg.db  
 }
-cat(paste("you entered", s_species[species_inp], 'as the species\n'))
+cat(paste("you entered", s_species[as.numeric(species_inp)], 'as the species\n'))
 
 # Statistics analysis
 repeat{

@@ -1,7 +1,7 @@
 # ======== Packages required =========
 options(java.parameters = c("-XX:+UseConcMarkSweepGC", "-Xmx16384m"))
 # Rcran
-packages<-c('Xmisc','readxl','xlsx','statmod','stringr')
+packages<-c('Xmisc','readxl','xlsx','statmod','stringr','rJava')
 for (package in packages){
   if(package %in% rownames(installed.packages()) == FALSE) {
     install.packages(package)}

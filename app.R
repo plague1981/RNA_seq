@@ -179,7 +179,8 @@ ui<- dashboardPage(
                          ),
                          tabPanel(title = 'Two groups analysis', icon = icon('calendar-plus'),
                                   uiOutput('ref_group_edgeR'),
-                                  uiOutput('contrast_group_edgeR')
+                                  uiOutput('contrast_group_edgeR'),
+                                  textOutput('con_text')
                          )
               ) #navbarPage: edgeR
       ) # tabItem:edgeR
@@ -599,8 +600,9 @@ server <- function(input, output, session){
   total.cpm.table<-eventReactive(input$get_total.cpm.table,{
     return(total.table(cpm.table()))
   })
-  
-  
+  con_seq<-reactive({
+    return(con(input$ref_edgeR, input$contrast_edgeR))
+  })
   # Output
   #output$groups_table<-renderTable({
   #  readgroup()
@@ -671,6 +673,9 @@ server <- function(input, output, session){
     } else
       group_choices<-levels(group_factors())
     selectInput(inputId = 'contrast_edgeR', label = 'Please select the contrast group:',choices = group_choices,selected = group_choices[2])
+  })
+  output$con_text<-renderText({
+    con_seq()
   })
 }
 shinyApp(ui, server)

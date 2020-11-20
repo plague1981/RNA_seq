@@ -168,5 +168,14 @@ y_estimate<-function(y){
   }
   return(y_estimate)
 }
-
+con<-function(ref, exp){
+  con<-vector()
+  for (n in 1:length(levels(group_factors()))){
+    con<-c(con,0)
+  }
+  
+  con[which(levels(group_factors())==ref)]<- -1
+  con[which(levels(group_factors())==exp)]<- 1
+  return(con)
+}
 

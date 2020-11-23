@@ -180,7 +180,8 @@ ui<- dashboardPage(
                          tabPanel(title = 'Two groups analysis', icon = icon('calendar-plus'),
                                   uiOutput('ref_group_edgeR'),
                                   uiOutput('contrast_group_edgeR'),
-                                  textOutput('con_text')
+                                  actionButton(inputId = 'get_out42groups_table',label = 'statistic table'),
+                                  tableOutput('out42groups_table') %>% withSpinner(color="#0dc5c1")
                          )
               ) #navbarPage: edgeR
       ) # tabItem:edgeR
@@ -585,23 +586,38 @@ server <- function(input, output, session){
   y_estimate_result<-reactive({
     return(y_estimate(y()))
   })
-  out<-eventReactive(input$get_out_table,{
-    fit <- glmQLFit(y_estimate_result(), design = design(), robust = TRUE)
-    anova.like.result <- glmQLFTest(fit, coef=2:length(levels(group_factors())))
-    out <- topTags(anova.like.result, n = "Inf")$table
-    return(out)
-  })
   cpm.table<-eventReactive(input$get_cpm_table,{
     return(cpm(y_estimate_result()))
   })
   rpkm.table<-eventReactive(input$get_rpkm_table,{
     return(rpkm(y_estimate_result()))
   })
-  total.cpm.table<-eventReactive(input$get_total.cpm.table,{
-    return(total.table(cpm.table()))
+  out<-eventReactive(input$get_out_table,{
+    fit <- glmQLFit(y_estimate_result(), design = design(), robust = TRUE)
+    anova.like.result <- glmQLFTest(fit, coef=2:length(levels(group_factors())))
+    out <- topTags(anova.like.result, n = "Inf")$table
+    return(out)
   })
   con_seq<-reactive({
     return(con(input$ref_edgeR, input$contrast_edgeR))
+  })
+  out42groups<-eventReactive(input$get_out42groups_table,{
+    if (length(levels(group_factors()))==2){
+      # the exact test is only applicable to experiments with a single factor
+      test.result <- exactTest(y_estimate_result(), pair = c(input$ref_edgeR,input$contrast_edgeR) )
+    } else {
+      # Genewise Negative Binomial Generalized Linear Model with Quasi-likelihood
+      fit <- glmQLFit(y_estimate_result(), design = design()) #"DGEGLM"
+      #con<-c(-1,0,0,1)
+      test.result <- glmQLFTest(fit, contrast = con_seq()) # "DGELRT"
+      ##Alternative method, Genewise Negative Binomial Generalized Linear Model
+      ##Fit a negative binomial generalized log-linear model to the read counts for each gene
+      #fit <- glmFit(y,design = design) #"DGEGLM"
+      #result <- glmLRT(fit,contrast = con) # "DGELRT" 
+    }
+    # export the statistic results
+    out <- topTags(test.result, n = "Inf")$table
+    return(out)
   })
   # Output
   #output$groups_table<-renderTable({
@@ -674,8 +690,11 @@ server <- function(input, output, session){
       group_choices<-levels(group_factors())
     selectInput(inputId = 'contrast_edgeR', label = 'Please select the contrast group:',choices = group_choices,selected = group_choices[2])
   })
-  output$con_text<-renderText({
-    con_seq()
+  output$out42groups_table<-renderTable(rownames = TRUE,digits = 6, spacing = 'xs',{
+    if (is.null(out())){
+      return(NULL)
+    } else
+      utils::head(data.frame(out42groups()))
   })
 }
 shinyApp(ui, server)

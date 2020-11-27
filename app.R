@@ -181,7 +181,8 @@ ui<- dashboardPage(
                                   uiOutput('ref_group_edgeR'),
                                   uiOutput('contrast_group_edgeR'),
                                   actionButton(inputId = 'get_out42groups_table',label = 'statistic table'),
-                                  tableOutput('out42groups_table') %>% withSpinner(color="#0dc5c1")
+                                  tableOutput('out42groups_table') %>% withSpinner(color="#0dc5c1"),
+                                  downloadLink("twogroup.download", "Download")
                          )
               ) #navbarPage: edgeR
       ) # tabItem:edgeR
@@ -695,6 +696,13 @@ server <- function(input, output, session){
       return(NULL)
     } else
       utils::head(data.frame(out42groups()))
+  })
+  output$twogroup.download <- downloadHandler(
+  filename =  "2groups_result_table.xlsx"
+  ,
+  content = function(file) {
+    require(xlsx)
+    write.xlsx(data.frame(out42groups()), sheetName = 'out',file)
   })
 }
 shinyApp(ui, server)

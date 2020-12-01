@@ -173,9 +173,16 @@ con<-function(ref, exp){
   for (n in 1:length(levels(group_factors()))){
     con<-c(con,0)
   }
-  
   con[which(levels(group_factors())==ref)]<- -1
   con[which(levels(group_factors())==exp)]<- 1
   return(con)
+}
+volcano_plot<-function(x){
+  v<-volcanoly(x, col = c("#252525"), point_size = 5, 
+            effect_size_line = c(input$logFC_left, input$logFC_right), effect_size_line_color = "grey", effect_size_line_width = 0.5, effect_size_line_type = 2, 
+            genomewideline = input$log10P, genomewideline_color = "grey", genomewideline_width = 0.5,
+            genomewideline_type = 2, highlight = NULL, highlight_color = "red",
+            xlab = NULL, ylab = "-log10(p)", title = paste(input$ref_edgeR, 'vs',input$contrast_edgeR, "Volcano Plot"))
+  return(v)
 }
 

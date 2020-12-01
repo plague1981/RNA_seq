@@ -183,6 +183,13 @@ ui<- dashboardPage(
                                   actionButton(inputId = 'get_out42groups_table',label = 'statistic table'),
                                   tableOutput('out42groups_table') %>% withSpinner(color="#0dc5c1"),
                                   downloadLink("twogroup.download", "Download")
+                         ),
+                         tabPanel(title = 'Visualization', icon = icon('map'),
+                                  sliderInput(inputId = 'logFC_left',label = 'Meaningful logFC below:',min = -5,max = 5,value = -1, step = 0.25),
+                                  sliderInput(inputId = 'logFC_right',label = 'Meaningful logFC above:',min = -5,max = 5,value = 1, step = 0.25),
+                                  sliderInput(inputId = 'log10P',label = 'Meaningful -log10PPvalue above:',min = 1,max = 5,value = 2, step = 0.25),
+                                  plotlyOutput('volcano_plots') %>% withSpinner(color="#0dc5c1")
+                                  
                          )
               ) #navbarPage: edgeR
       ) # tabItem:edgeR
@@ -620,6 +627,7 @@ server <- function(input, output, session){
     out <- topTags(test.result, n = "Inf")$table
     return(out)
   })
+  
   # Output
   #output$groups_table<-renderTable({
   #  readgroup()
@@ -698,11 +706,21 @@ server <- function(input, output, session){
       utils::head(data.frame(out42groups()))
   })
   output$twogroup.download <- downloadHandler(
-  filename =  "2groups_result_table.xlsx"
-  ,
-  content = function(file) {
-    require(xlsx)
-    write.xlsx(data.frame(out42groups()), sheetName = 'out',file)
+    filename =  "2groups_result_table.xlsx"
+    ,
+    content = function(file) {
+      require(xlsx)
+      write.xlsx(data.frame(out42groups()), sheetName = 'out',file)
   })
+  output$volcano_plots<-renderPlotly({
+    require(manhattanly)
+    v_data<-data.frame(out42groups()[,c('GeneID','logFC','PValue')])
+    v_data[,'logFC']<-as.numeric(v_data[,'logFC'])
+    v_data[,'PValue']<-as.numeric(v_data[,'PValue'])
+    x<-volcanor(v_data,p = 'PValue',effect_size = 'logFC',snp = 'GeneID')
+    x$effectName<-'EFFECTSIZE'
+    return(volcano_plot(x))
+  })
+  
 }
 shinyApp(ui, server)

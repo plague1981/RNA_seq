@@ -181,14 +181,16 @@ ui<- dashboardPage(
                                   uiOutput('ref_group_edgeR'),
                                   uiOutput('contrast_group_edgeR'),
                                   actionButton(inputId = 'get_out42groups_table',label = 'statistic table'),
+                                  tableOutput('twogroup.cpm_table') %>% withSpinner(color="#0dc5c1"),
                                   tableOutput('out42groups_table') %>% withSpinner(color="#0dc5c1"),
                                   downloadLink("twogroup.download", "Download")
                          ),
                          tabPanel(title = 'Visualization', icon = icon('map'),
-                                  sliderInput(inputId = 'logFC_left',label = 'Meaningful logFC below:',min = -5,max = 5,value = -1, step = 0.25),
-                                  sliderInput(inputId = 'logFC_right',label = 'Meaningful logFC above:',min = -5,max = 5,value = 1, step = 0.25),
+                                  sliderInput(inputId = 'logFC_left',label = 'Meaningful logFC below:',min = -5,max = 0,value = -1, step = 0.25,),
+                                  sliderInput(inputId = 'logFC_right',label = 'Meaningful logFC above:',min = 0,max = 5,value = 1, step = 0.25),
                                   sliderInput(inputId = 'log10P',label = 'Meaningful -log10PPvalue above:',min = 1,max = 5,value = 2, step = 0.25),
-                                  plotlyOutput('volcano_plots') %>% withSpinner(color="#0dc5c1")
+                                  plotlyOutput('volcano_plots') %>% withSpinner(color="#0dc5c1"),
+                                  tableOutput('twogroup.Sig.cpm_table')%>% withSpinner(color="#0dc5c1")
                                   
                          )
               ) #navbarPage: edgeR
@@ -627,11 +629,19 @@ server <- function(input, output, session){
     out <- topTags(test.result, n = "Inf")$table
     return(out)
   })
-  
+  sample.names<-eventReactive(input$get_out42groups_table,{
+    sample.names.group_1<-row.names(y()$samples[y()$samples[,"group"]==input$ref_edgeR,])
+    sample.names.group_2<-row.names(y()$samples[y()$samples[,"group"]==input$contrast_edgeR,])
+    sample.names<-c(sample.names.group_1,sample.names.group_2)
+    return(sample.names)
+  })
+  Sig_List<- eventReactive(input$get_out42groups_table,{
+    filtered<-out42groups()[out42groups()[,'PValue']<10^-input$log10P,]
+    filtered<-filtered[input$logFC_left<filtered[,'logFC'],]
+    filtered<-filtered[filtered[,'logFC']<input$logFC_right,]
+    return(row.names(filtered))
+  })
   # Output
-  #output$groups_table<-renderTable({
-  #  readgroup()
-  #})
   output$counts_table<-renderTable(rownames = TRUE,{
     if (is.null(readcounts())){
       return(NULL)
@@ -704,6 +714,18 @@ server <- function(input, output, session){
       return(NULL)
     } else
       utils::head(data.frame(out42groups()))
+  })
+  output$twogroup.cpm_table<-renderTable(rownames = TRUE,digits = 6, spacing = 'xs',{
+    if (is.null(sample.names())){
+      return(NULL)
+    } else
+      head(cpm.table()[,sample.names()])
+  })
+  output$twogroup.Sig.cpm_table<-renderTable(rownames = TRUE,digits = 6, spacing = 'xs',{
+    if (is.null(sample.names())){
+      return(NULL)
+    } else
+      cpm.table()[Sig_List(),sample.names()]
   })
   output$twogroup.download <- downloadHandler(
     filename =  "2groups_result_table.xlsx"

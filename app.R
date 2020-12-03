@@ -190,6 +190,7 @@ ui<- dashboardPage(
                                   sliderInput(inputId = 'logFC_right',label = 'Meaningful logFC above:',min = 0,max = 5,value = 1, step = 0.25),
                                   sliderInput(inputId = 'log10P',label = 'Meaningful -log10PPvalue above:',min = 1,max = 5,value = 2, step = 0.25),
                                   plotlyOutput('volcano_plots') %>% withSpinner(color="#0dc5c1"),
+                                  plotlyOutput('heatmap_plots') %>% withSpinner(color="#0dc5c1"),
                                   tableOutput('twogroup.Sig.cpm_table')%>% withSpinner(color="#0dc5c1")
                                   
                          )
@@ -635,7 +636,7 @@ server <- function(input, output, session){
     sample.names<-c(sample.names.group_1,sample.names.group_2)
     return(sample.names)
   })
-  Sig_List<- eventReactive(input$get_out42groups_table,{
+  Sig_List<- reactive({
     filtered<-out42groups()[out42groups()[,'PValue']<10^-input$log10P,]
     filtered<-filtered[input$logFC_left<filtered[,'logFC'],]
     filtered<-filtered[filtered[,'logFC']<input$logFC_right,]
@@ -719,14 +720,15 @@ server <- function(input, output, session){
     if (is.null(sample.names())){
       return(NULL)
     } else
-      head(cpm.table()[,sample.names()])
+      utils::head(cpm.table()[,sample.names()])
   })
   output$twogroup.Sig.cpm_table<-renderTable(rownames = TRUE,digits = 6, spacing = 'xs',{
     if (is.null(sample.names())){
       return(NULL)
     } else
-      cpm.table()[Sig_List(),sample.names()]
+      utils::head(cpm.table()[Sig_List(),sample.names()])
   })
+  
   output$twogroup.download <- downloadHandler(
     filename =  "2groups_result_table.xlsx"
     ,
@@ -743,6 +745,8 @@ server <- function(input, output, session){
     x$effectName<-'EFFECTSIZE'
     return(volcano_plot(x))
   })
-  
+  output$heatmap_plots<-renderPlotly({
+    return(heatmap_plot(Sig_List(),sample.names()))
+  })
 }
 shinyApp(ui, server)

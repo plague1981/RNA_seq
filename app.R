@@ -189,7 +189,9 @@ ui<- dashboardPage(
                                   sliderInput(inputId = 'logFC_left',label = 'Meaningful logFC below:',min = -5,max = 0,value = -1, step = 0.25,),
                                   sliderInput(inputId = 'logFC_right',label = 'Meaningful logFC above:',min = 0,max = 5,value = 1, step = 0.25),
                                   sliderInput(inputId = 'log10P',label = 'Meaningful -log10PPvalue above:',min = 1,max = 5,value = 2, step = 0.25),
+                                  sliderInput(inputId = 'FDR',label = '-log10FDR above:',min = 1,max = 5,value = 1.3, step = 0.25),
                                   plotlyOutput('volcano_plots') %>% withSpinner(color="#0dc5c1"),
+                                  plotlyOutput('volcano_plots_FDR') %>% withSpinner(color="#0dc5c1"),
                                   plotlyOutput('heatmap_plots') %>% withSpinner(color="#0dc5c1"),
                                   tableOutput('twogroup.Sig.cpm_table')%>% withSpinner(color="#0dc5c1")
                                   
@@ -744,6 +746,15 @@ server <- function(input, output, session){
     x<-volcanor(v_data,p = 'PValue',effect_size = 'logFC',snp = 'GeneID')
     x$effectName<-'EFFECTSIZE'
     return(volcano_plot(x))
+  })
+    output$volcano_plots_FDR<-renderPlotly({
+    require(manhattanly)
+    v_data<-data.frame(out42groups()[,c('GeneID','logFC','FDR')])
+    v_data[,'logFC']<-as.numeric(v_data[,'logFC'])
+    v_data[,'FDR']<-as.numeric(v_data[,'FDR'])
+    x<-volcanor(v_data,p = 'FDR',effect_size = 'logFC',snp = 'GeneID')
+    x$effectName<-'EFFECTSIZE'
+    return(volcano_plot_FDR(x))
   })
   output$heatmap_plots<-renderPlotly({
     return(heatmap_plot(Sig_List(),sample.names()))

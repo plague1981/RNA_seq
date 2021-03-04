@@ -185,6 +185,14 @@ volcano_plot<-function(x){
             xlab = NULL, ylab = "-log10(p)", title = paste(input$ref_edgeR, 'vs',input$contrast_edgeR, "Volcano Plot"))
   return(v)
 }
+volcano_plot_FDR<-function(x){
+  v<-volcanoly(x, col = c("#252525"), point_size = 5, 
+               effect_size_line = c(input$logFC_left, input$logFC_right), effect_size_line_color = "grey", effect_size_line_width = 0.5, effect_size_line_type = 2, 
+               genomewideline = input$FDR, genomewideline_color = "grey", genomewideline_width = 0.5,
+               genomewideline_type = 2, highlight = NULL, highlight_color = "red",
+               xlab = NULL, ylab = "-log10(FDR)", title = paste(input$ref_edgeR, 'vs',input$contrast_edgeR, "Volcano Plot"))
+  return(v)
+}
 heatmap_plot<-function(r,c){
   m<-data.matrix(cpm.table()[r,c])
   fig <- plot_ly(
